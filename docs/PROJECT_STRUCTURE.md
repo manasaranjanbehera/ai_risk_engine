@@ -140,4 +140,30 @@ You can then create a branch (e.g. `docs/project-structure` or `main`) and push 
 
 ---
 
-If something in this guide is unclear or you’d like to add more sections (e.g. how to run tests or how to add the first migration), we can extend this document over time. Happy building!
+---
+
+## Pushing to GitHub
+
+When you’re ready to put this project on GitHub:
+
+1. **Create a new repository** on GitHub (via the website or CLI). Don’t initialize it with a README if you already have one locally.
+
+2. **Add the remote** (replace `YOUR_USERNAME` and `YOUR_REPO` with your GitHub username and repo name):
+   ```bash
+   git remote add origin https://github.com/YOUR_USERNAME/YOUR_REPO.git
+   ```
+
+3. **Push your branch** (this guide was added on the `docs/project-structure` branch):
+   ```bash
+   git push -u origin docs/project-structure
+   ```
+
+4. **Optionally push `main` as well** so your default branch is on GitHub:
+   ```bash
+   git checkout main
+   git push -u origin main
+   ```
+
+After that, you can open a Pull Request from `docs/project-structure` into `main` on GitHub if you’d like, or keep working on either branch.
+
+
