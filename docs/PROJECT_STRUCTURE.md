@@ -1,0 +1,143 @@
+# Project structure guide
+
+This document explains how this project is organized and how you can set up a similar, scalable folder structure for a new project. We’ve kept the tone friendly and the steps simple so that someone new to the codebase (or to structuring projects) can follow along easily.
+
+---
+
+## What this project looks like (folder scan summary)
+
+Here’s a high-level overview of the main folders and what they’re for:
+
+| Folder | Purpose |
+|--------|--------|
+| **`app/`** | Main application code. Everything that runs lives under here. |
+| **`app/config/`** | Settings, logging, security config, and environment-based configuration. |
+| **`app/domain/`** | Core business logic: models, schemas, policies, validators, and domain services. Kept separate from APIs and infrastructure so it stays easy to test and change. |
+| **`app/api/`** | HTTP layer: FastAPI routers (risk, compliance, tenant, health), middleware, and shared dependencies. |
+| **`app/workflows/`** | Orchestration and workflows (e.g. LangGraph risk and compliance workflows and their nodes). |
+| **`app/infrastructure/`** | External systems: database, LLM clients, cache, messaging, vector store, and tools. Keeps “plumbing” in one place. |
+| **`app/security/`** | Security concerns: encryption, RBAC, tenant context. |
+| **`app/governance/`** | Governance: prompt/model registry, audit logging, approval workflows. |
+| **`app/observability/`** | Metrics, tracing, evaluation, and integration with observability tools (e.g. Langfuse). |
+| **`tests/`** | All tests. Subfolders: `unit/`, `integration/`, `load/`, `workflow/` so you can run the right kind of tests when needed. |
+| **`migrations/`** | Database migrations (e.g. Alembic). Empty until you add your first migration. |
+| **`docker/`** | Docker-related files (e.g. Dockerfiles, scripts). Empty until you add them. |
+| **`scripts/`** | One-off or utility scripts (seeds, admin tasks). Empty until you add them. |
+| **`docs/`** | Documentation (like this file). |
+
+At the root you’ll also see:
+
+- **`pyproject.toml`** – Python project config and dependencies.
+- **`docker-compose.yml`** – For running services (e.g. app, DB) locally.
+- **`README.md`** – Short project overview and how to run it.
+- **`.gitignore`** – Files and folders that Git should ignore.
+
+This layout keeps different concerns in separate places so the project can grow without turning into a big, tangled ball of code.
+
+---
+
+## Why this structure is scalable
+
+- **Separate concerns** – Domain logic, API, infrastructure, and workflows live in different packages. You can change one part (e.g. swap the database or add a new API) without digging through the whole app.
+- **Clear entrypoint** – `app/main.py` is the application entrypoint. New people know where the app starts.
+- **Test-friendly** – Domain and services can be tested without starting the API or real databases. Tests are grouped by type under `tests/`.
+- **Room to grow** – Empty (or mostly empty) folders like `migrations/`, `docker/`, and `scripts/` are placeholders. You fill them when you need migrations, containers, or scripts.
+
+---
+
+## How to create a new empty project with this structure
+
+If you want to start a **new** project that is empty but scalable from day one, you can do the following.
+
+### 1. Create the project root
+
+```bash
+mkdir my_new_project
+cd my_new_project
+```
+
+### 2. Create the folder structure
+
+Create the same top-level folders as above. You can do it by hand or with a short script. Example (run from the project root):
+
+```bash
+mkdir -p app/config app/domain/models app/domain/schemas app/domain/services \
+         app/domain/policies app/domain/validators \
+         app/api/routers app/infrastructure/database app/infrastructure/llm \
+         app/infrastructure/cache app/infrastructure/messaging \
+         app/infrastructure/vectorstore app/infrastructure/tools \
+         app/workflows app/security app/governance app/observability \
+         tests/unit tests/integration tests/load tests/workflow \
+         migrations docker scripts docs
+```
+
+Adjust names if your project doesn’t need workflows, governance, or observability yet; you can add those folders when you need them.
+
+### 3. Make `app` a Python package
+
+Add an empty `__init__.py` in every folder that should be a package (so Python can import from it). At minimum:
+
+- `app/__init__.py`
+- `app/config/__init__.py`
+- `app/domain/__init__.py`
+- `app/domain/models/__init__.py`
+- `app/api/__init__.py`
+- `app/api/routers/__init__.py`
+- …and the same for any other subpackages you created.
+
+You can touch them with:
+
+```bash
+touch app/__init__.py app/config/__init__.py app/domain/__init__.py \
+      app/domain/models/__init__.py app/api/__init__.py app/api/routers/__init__.py
+```
+
+(Repeat for other packages as needed.)
+
+### 4. Add a minimal entrypoint
+
+Create `app/main.py` with a minimal FastAPI app (or whatever framework you use), for example:
+
+```python
+# app/main.py
+from fastapi import FastAPI
+
+app = FastAPI(title="My New Project")
+
+@app.get("/health")
+def health():
+    return {"status": "ok"}
+```
+
+This gives you a single, clear place where the application starts.
+
+### 5. Add root-level files
+
+- **`pyproject.toml`** – Declare your project name, Python version, and dependencies.
+- **`README.md`** – Briefly describe the project and how to run it (e.g. `uvicorn app.main:app --reload`).
+- **`.gitignore`** – Include at least `__pycache__/`, `.env`, `*.pyc`, and any virtualenv or IDE folders you use.
+
+### 6. Initialize Git and make the first commit
+
+```bash
+git init
+git add .
+git commit -m "Initial commit: scalable project structure"
+```
+
+You can then create a branch (e.g. `docs/project-structure` or `main`) and push to GitHub when you’re ready.
+
+---
+
+## Quick reference: where to put what
+
+- **New API route** → `app/api/routers/` (e.g. a new file or router module).
+- **New business rule or model** → `app/domain/models/` or `app/domain/services/`.
+- **New workflow or pipeline** → `app/workflows/`.
+- **New integration (DB, API client, queue)** → `app/infrastructure/` (e.g. a new subpackage or module).
+- **New config or env variable** → `app/config/` (e.g. in `settings.py` or a dedicated module).
+- **New test** → `tests/unit/`, `tests/integration/`, etc., mirroring the `app/` structure if you like.
+
+---
+
+If something in this guide is unclear or you’d like to add more sections (e.g. how to run tests or how to add the first migration), we can extend this document over time. Happy building!
