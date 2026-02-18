@@ -1,6 +1,6 @@
 # Project structure guide
 
-This document explains how this project is organized and how you can set up a similar, scalable folder structure for a new project. We’ve kept the tone friendly and the steps simple so that someone new to the codebase (or to structuring projects) can follow along easily.
+This document explains how this project is organized and how you can set up a similar, scalable folder structure for a new project. For a **complete folder and file tree** of the current codebase, see [FOLDER_AND_FILE_STRUCTURE.md](./FOLDER_AND_FILE_STRUCTURE.md). We’ve kept the tone friendly and the steps simple so that someone new to the codebase (or to structuring projects) can follow along easily.
 
 ---
 
@@ -165,5 +165,4 @@ When you’re ready to put this project on GitHub:
    ```
 
 After that, you can open a Pull Request from `docs/project-structure` into `main` on GitHub if you’d like, or keep working on either branch.
-
 
