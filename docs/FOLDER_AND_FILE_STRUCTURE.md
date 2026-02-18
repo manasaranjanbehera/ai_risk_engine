@@ -19,6 +19,10 @@ ai_risk_engine/
 │   ├── __init__.py
 │   ├── main.py
 │   │
+│   ├── application/
+│   │   ├── __init__.py
+│   │   └── event_service.py
+│   │
 │   ├── api/
 │   │   ├── __init__.py
 │   │   ├── dependencies.py
@@ -26,6 +30,7 @@ ai_risk_engine/
 │   │   └── routers/
 │   │       ├── __init__.py
 │   │       ├── compliance.py
+│   │       ├── events.py
 │   │       ├── health.py
 │   │       ├── risk.py
 │   │       └── tenant.py
@@ -40,15 +45,18 @@ ai_risk_engine/
 │   ├── domain/
 │   │   ├── __init__.py
 │   │   ├── models/
-│   │   │   └── __init__.py
+│   │   │   ├── __init__.py
+│   │   │   └── event.py
 │   │   ├── policies/
 │   │   │   └── __init__.py
 │   │   ├── schemas/
-│   │   │   └── __init__.py
+│   │   │   ├── __init__.py
+│   │   │   └── event.py
 │   │   ├── services/
 │   │   │   └── __init__.py
 │   │   └── validators/
-│   │       └── __init__.py
+│   │       ├── __init__.py
+│   │       └── event_validator.py
 │   │
 │   ├── governance/
 │   │   ├── __init__.py
@@ -62,11 +70,15 @@ ai_risk_engine/
 │   │   ├── cache/
 │   │   │   └── __init__.py
 │   │   ├── database/
-│   │   │   └── __init__.py
+│   │   │   ├── __init__.py
+│   │   │   ├── models.py
+│   │   │   ├── repository.py
+│   │   │   └── session.py
 │   │   ├── llm/
 │   │   │   └── __init__.py
 │   │   ├── messaging/
-│   │   │   └── __init__.py
+│   │   │   ├── __init__.py
+│   │   │   └── rabbitmq_publisher.py
 │   │   ├── tools/
 │   │   │   └── __init__.py
 │   │   └── vectorstore/
@@ -135,12 +147,21 @@ ai_risk_engine/
 | Path | Description |
 |------|-------------|
 | `app/main.py` | Application entrypoint (FastAPI app) |
+| `app/application/event_service.py` | Event application service (orchestrates domain + infrastructure) |
 | `app/api/dependencies.py` | Shared API dependencies (e.g. auth, DB session) |
 | `app/api/middleware.py` | HTTP middleware |
 | `app/api/routers/compliance.py` | Compliance API routes |
+| `app/api/routers/events.py` | Events API routes |
 | `app/api/routers/health.py` | Health check routes |
 | `app/api/routers/risk.py` | Risk API routes |
 | `app/api/routers/tenant.py` | Tenant API routes |
+| `app/domain/models/event.py` | Event domain model |
+| `app/domain/schemas/event.py` | Event request/response schemas |
+| `app/domain/validators/event_validator.py` | Event validation logic |
+| `app/infrastructure/database/models.py` | Database ORM models |
+| `app/infrastructure/database/repository.py` | Database repository (CRUD, queries) |
+| `app/infrastructure/database/session.py` | Database session factory and dependency |
+| `app/infrastructure/messaging/rabbitmq_publisher.py` | RabbitMQ message publisher |
 | `app/config/settings.py` | Main settings / env config |
 | `app/config/logging.py` | Logging configuration |
 | `app/config/model_routing.py` | Model routing configuration |

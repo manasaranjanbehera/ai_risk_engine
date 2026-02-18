@@ -11,9 +11,10 @@ Here’s a high-level overview of the main folders and what they’re for:
 | Folder | Purpose |
 |--------|--------|
 | **`app/`** | Main application code. Everything that runs lives under here. |
+| **`app/application/`** | Application layer: services that orchestrate domain and infrastructure (e.g. `event_service.py`). |
+| **`app/api/`** | HTTP layer: FastAPI routers (risk, compliance, tenant, health, events), middleware, and shared dependencies. |
 | **`app/config/`** | Settings, logging, security config, and environment-based configuration. |
 | **`app/domain/`** | Core business logic: models, schemas, policies, validators, and domain services. Kept separate from APIs and infrastructure so it stays easy to test and change. |
-| **`app/api/`** | HTTP layer: FastAPI routers (risk, compliance, tenant, health), middleware, and shared dependencies. |
 | **`app/workflows/`** | Orchestration and workflows (e.g. LangGraph risk and compliance workflows and their nodes). |
 | **`app/infrastructure/`** | External systems: database, LLM clients, cache, messaging, vector store, and tools. Keeps “plumbing” in one place. |
 | **`app/security/`** | Security concerns: encryption, RBAC, tenant context. |
@@ -61,7 +62,7 @@ cd my_new_project
 Create the same top-level folders as above. You can do it by hand or with a short script. Example (run from the project root):
 
 ```bash
-mkdir -p app/config app/domain/models app/domain/schemas app/domain/services \
+mkdir -p app/application app/config app/domain/models app/domain/schemas app/domain/services \
          app/domain/policies app/domain/validators \
          app/api/routers app/infrastructure/database app/infrastructure/llm \
          app/infrastructure/cache app/infrastructure/messaging \
@@ -78,6 +79,7 @@ Adjust names if your project doesn’t need workflows, governance, or observabil
 Add an empty `__init__.py` in every folder that should be a package (so Python can import from it). At minimum:
 
 - `app/__init__.py`
+- `app/application/__init__.py`
 - `app/config/__init__.py`
 - `app/domain/__init__.py`
 - `app/domain/models/__init__.py`
@@ -88,7 +90,7 @@ Add an empty `__init__.py` in every folder that should be a package (so Python c
 You can touch them with:
 
 ```bash
-touch app/__init__.py app/config/__init__.py app/domain/__init__.py \
+touch app/__init__.py app/application/__init__.py app/config/__init__.py app/domain/__init__.py \
       app/domain/models/__init__.py app/api/__init__.py app/api/routers/__init__.py
 ```
 
@@ -131,10 +133,11 @@ You can then create a branch (e.g. `docs/project-structure` or `main`) and push 
 
 ## Quick reference: where to put what
 
-- **New API route** → `app/api/routers/` (e.g. a new file or router module).
-- **New business rule or model** → `app/domain/models/` or `app/domain/services/`.
+- **New API route** → `app/api/routers/` (e.g. a new file or router module such as `events.py`).
+- **New application service** → `app/application/` (e.g. `event_service.py` — orchestrates domain + infrastructure).
+- **New business rule or model** → `app/domain/models/` or `app/domain/services/`; schemas in `app/domain/schemas/`, validators in `app/domain/validators/`.
 - **New workflow or pipeline** → `app/workflows/`.
-- **New integration (DB, API client, queue)** → `app/infrastructure/` (e.g. a new subpackage or module).
+- **New integration (DB, API client, queue)** → `app/infrastructure/` (e.g. `database/models.py`, `database/repository.py`, `database/session.py`, `messaging/rabbitmq_publisher.py`).
 - **New config or env variable** → `app/config/` (e.g. in `settings.py` or a dedicated module).
 - **New test** → `tests/unit/`, `tests/integration/`, etc., mirroring the `app/` structure if you like.
 
