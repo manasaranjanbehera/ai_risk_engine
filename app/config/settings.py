@@ -31,6 +31,9 @@ class AppSettings(BaseSettings):
     # --- Redis ---
     redis_url: str
 
+    # --- Messaging ---
+    rabbitmq_url: str
+
     # --- Observability ---
     enable_metrics: bool = True
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
@@ -39,3 +42,7 @@ class AppSettings(BaseSettings):
 @lru_cache
 def get_settings() -> AppSettings:
     return AppSettings()
+
+
+# Singleton for direct import (e.g. in infrastructure clients)
+settings = get_settings()

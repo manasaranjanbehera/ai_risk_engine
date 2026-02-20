@@ -144,3 +144,6 @@ ai_risk_engine/
 - **Project layout and conventions:** [docs/PROJECT_STRUCTURE.md](./PROJECT_STRUCTURE.md)
 - **Local setup and testing:** [docs/TESTING_AND_LOCAL_SETUP.md](./TESTING_AND_LOCAL_SETUP.md)
 - **Architecture / LLM context:** [docs/llm_context/master_architecture_prompt.md](./llm_context/master_architecture_prompt.md)
+
+Schema dump:
+docker exec -t compliance_postgres pg_dump -U compliance_user -d compliance_db --schema-only > schema.sql
