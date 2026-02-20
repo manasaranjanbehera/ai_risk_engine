@@ -1,6 +1,6 @@
 # Project structure guide
 
-This document explains how this project is organized and how you can set up a similar, scalable folder structure for a new project. For a **complete folder and file tree** of the current codebase, see [FOLDER_AND_FILE_STRUCTURE.md](./FOLDER_AND_FILE_STRUCTURE.md). We’ve kept the tone friendly and the steps simple so that someone new to the codebase (or to structuring projects) can follow along easily.
+This document explains how this project is organized and how you can set up a similar, scalable folder structure for a new project. For a **complete folder and file tree** of the current codebase, see [FOLDER_AND_FILE_STRUCTURE.md](./FOLDER_AND_FILE_STRUCTURE.md). For **running and testing the app locally** (venv, dependencies, health check), see [TESTING_AND_LOCAL_SETUP.md](./TESTING_AND_LOCAL_SETUP.md). We’ve kept the tone friendly and the steps simple so that someone new to the codebase (or to structuring projects) can follow along easily.
 
 ---
 
@@ -12,8 +12,9 @@ Here’s a high-level overview of the main folders and what they’re for:
 |--------|--------|
 | **`app/`** | Main application code. Everything that runs lives under here. |
 | **`app/application/`** | Application layer: services that orchestrate domain and infrastructure (e.g. `event_service.py`). |
-| **`app/api/`** | HTTP layer: FastAPI routers (risk, compliance, tenant, health, events), middleware, and shared dependencies. |
-| **`app/config/`** | Settings, logging, security config, and environment-based configuration. |
+| **`app/core/`** | Request-scoped context (e.g. correlation ID, tenant ID) used by middleware and logging. |
+| **`app/api/`** | HTTP layer: FastAPI routers (e.g. health, events), middleware, and shared dependencies. |
+| **`app/config/`** | Settings, logging, and environment-based configuration. |
 | **`app/domain/`** | Core business logic: models, schemas, policies, validators, and domain services. Kept separate from APIs and infrastructure so it stays easy to test and change. |
 | **`app/workflows/`** | Orchestration and workflows (e.g. LangGraph risk and compliance workflows and their nodes). |
 | **`app/infrastructure/`** | External systems: database, LLM clients, cache, messaging, vector store, and tools. Keeps “plumbing” in one place. |
@@ -28,8 +29,8 @@ Here’s a high-level overview of the main folders and what they’re for:
 
 At the root you’ll also see:
 
-- **`pyproject.toml`** – Python project config and dependencies.
-- **`docker-compose.yml`** – For running services (e.g. app, DB) locally.
+- **`requirements.txt`** – Python dependencies (FastAPI, uvicorn, pydantic-settings, etc.).
+- **`docker-compose.yml`** – For running local services (Postgres, RabbitMQ, Redis).
 - **`README.md`** – Short project overview and how to run it.
 - **`.gitignore`** – Files and folders that Git should ignore.
 
@@ -62,7 +63,7 @@ cd my_new_project
 Create the same top-level folders as above. You can do it by hand or with a short script. Example (run from the project root):
 
 ```bash
-mkdir -p app/application app/config app/domain/models app/domain/schemas app/domain/services \
+mkdir -p app/core app/application app/config app/domain/models app/domain/schemas app/domain/services \
          app/domain/policies app/domain/validators \
          app/api/routers app/infrastructure/database app/infrastructure/llm \
          app/infrastructure/cache app/infrastructure/messaging \
@@ -79,6 +80,7 @@ Adjust names if your project doesn’t need workflows, governance, or observabil
 Add an empty `__init__.py` in every folder that should be a package (so Python can import from it). At minimum:
 
 - `app/__init__.py`
+- `app/core/__init__.py`
 - `app/application/__init__.py`
 - `app/config/__init__.py`
 - `app/domain/__init__.py`
@@ -90,8 +92,8 @@ Add an empty `__init__.py` in every folder that should be a package (so Python c
 You can touch them with:
 
 ```bash
-touch app/__init__.py app/application/__init__.py app/config/__init__.py app/domain/__init__.py \
-      app/domain/models/__init__.py app/api/__init__.py app/api/routers/__init__.py
+touch app/__init__.py app/core/__init__.py app/application/__init__.py app/config/__init__.py \
+      app/domain/__init__.py app/domain/models/__init__.py app/api/__init__.py app/api/routers/__init__.py
 ```
 
 (Repeat for other packages as needed.)
@@ -115,7 +117,7 @@ This gives you a single, clear place where the application starts.
 
 ### 5. Add root-level files
 
-- **`pyproject.toml`** – Declare your project name, Python version, and dependencies.
+- **`requirements.txt`** (or **`pyproject.toml`**) – Declare your project dependencies.
 - **`README.md`** – Briefly describe the project and how to run it (e.g. `uvicorn app.main:app --reload`).
 - **`.gitignore`** – Include at least `__pycache__/`, `.env`, `*.pyc`, and any virtualenv or IDE folders you use.
 
