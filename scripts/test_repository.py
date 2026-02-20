@@ -7,10 +7,12 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import asyncio
+
 from sqlalchemy import delete
-from app.infrastructure.database.session import AsyncSessionLocal, engine, Base
-from app.infrastructure.database.repository import AsyncRepository
+
 from app.infrastructure.database.models import TestEvent
+from app.infrastructure.database.repository import AsyncRepository
+from app.infrastructure.database.session import AsyncSessionLocal, Base, engine
 
 TEST_IDEMPOTENCY_KEY = "abc123"
 TEST_TENANT_ID = "tenant_a"

@@ -1,12 +1,14 @@
 # app/main.py
 
-from fastapi import FastAPI, Request
-import uuid
-from app.config.settings import get_settings
-from app.config.logging import configure_logging
-from app.core.context import correlation_id_ctx, tenant_id_ctx
-from app.api.routers.health import router as health_router
 import logging
+import uuid
+
+from fastapi import FastAPI, Request
+
+from app.api.routers.health import router as health_router
+from app.config.logging import configure_logging
+from app.config.settings import get_settings
+from app.core.context import correlation_id_ctx, tenant_id_ctx
 
 settings = get_settings()
 configure_logging(settings.log_level)

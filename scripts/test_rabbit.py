@@ -6,7 +6,9 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import asyncio
+
 from app.infrastructure.messaging.rabbitmq_publisher import RabbitMQPublisher
+
 
 async def test():
     publisher = RabbitMQPublisher()

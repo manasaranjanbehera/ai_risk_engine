@@ -1,8 +1,9 @@
 # app/config/logging.py
 
-import logging
 import json
+import logging
 from datetime import datetime
+
 from app.core.context import correlation_id_ctx, tenant_id_ctx
 
 

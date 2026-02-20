@@ -1,7 +1,9 @@
 # app/infrastructure/messaging/rabbitmq_publisher.py
 
-import aio_pika
 import json
+
+import aio_pika
+
 from app.config.settings import settings
 
 

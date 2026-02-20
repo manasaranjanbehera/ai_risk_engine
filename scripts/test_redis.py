@@ -7,7 +7,9 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import asyncio
+
 from app.infrastructure.cache.redis_client import RedisClient
+
 
 async def test():
     r = RedisClient()

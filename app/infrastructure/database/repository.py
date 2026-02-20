@@ -1,9 +1,10 @@
 # app/infrastructure/database/repository.py
 
-from typing import Type, TypeVar, Generic, Optional
-from sqlalchemy.ext.asyncio import AsyncSession
+from typing import Generic, Optional, Type, TypeVar
+
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.ext.asyncio import AsyncSession
 
 T = TypeVar("T")
 

@@ -1,12 +1,12 @@
 # app/infrastructure/database/models.py
 
 import uuid
-from sqlalchemy import Column, DateTime, String, Boolean
+
+from sqlalchemy import Boolean, Column, DateTime, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
-from app.infrastructure.database.session import Base
-from sqlalchemy import Column, String
 
+from app.infrastructure.database.session import Base
 
 
 class BaseModel(Base):
