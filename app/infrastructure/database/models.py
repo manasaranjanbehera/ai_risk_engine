@@ -3,7 +3,7 @@
 import uuid
 
 from sqlalchemy import Boolean, Column, DateTime, String
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.sql import func
 
 from app.infrastructure.database.session import Base
@@ -31,3 +31,16 @@ class TestEvent(BaseModel):
 
     name = Column(String)
     idempotency_key = Column(String, unique=True)
+
+
+class Event(BaseModel):
+    """ORM model for persisted domain events (application boundary, status RECEIVED)."""
+
+    __tablename__ = "events"
+
+    event_id = Column(String, nullable=False, index=True)
+    correlation_id = Column(String, nullable=False)
+    status = Column(String, nullable=False, default="received")
+    event_type = Column(String, nullable=False)
+    metadata_ = Column("metadata", JSONB, nullable=True)
+    version = Column(String, nullable=False, default="1.0")

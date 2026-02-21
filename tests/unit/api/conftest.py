@@ -1,11 +1,9 @@
-"""Fixtures for API unit tests: in-memory Redis, mock DB, mock publisher, AsyncClient."""
+"""Fixtures for API unit tests: in-memory Redis, mock publisher, AsyncClient."""
 
-from typing import AsyncGenerator
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock
 
 import pytest
 from httpx import ASGITransport, AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.main import app
 
@@ -30,12 +28,6 @@ class FakeRedis:
 
     async def exists(self, key: str):
         return 1 if key in self._store else 0
-
-
-async def override_get_db_session() -> AsyncGenerator[AsyncSession, None]:
-    """Yield a mock async session."""
-    session = AsyncMock(spec=AsyncSession)
-    yield session
 
 
 @pytest.fixture

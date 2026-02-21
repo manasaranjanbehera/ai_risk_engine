@@ -1,0 +1,28 @@
+# Phase 4 — Documentation updates summary
+
+Summary of changes made to project documentation after Phase 4 implementation.
+
+1. **Phase 4 summary file** — `phase4-ApplicationLayer-summary`  
+   Turned into a Markdown doc with title, numbered sections (1–8), bullet lists, code block for test commands, and clear separation between Domain, Application, Repository, Workflow, EventService, API/DI, Tests, and Transaction behavior.
+
+2. **docs/FOLDER_AND_FILE_STRUCTURE.md**  
+   - Last updated set to Phase 4.  
+   - Phase 4 application layer section added at the top (event service, repository protocol, exceptions, workflows, Redis event repository, RECEIVED status).  
+   - Directory tree updated with application/event_repository.py, exceptions.py; api/dependencies.py, middleware.py, routers; infrastructure/cache/event_repository_redis.py; workflows/interface.py, dummy_workflow.py; tests/unit/application/test_event_service.py.  
+   - File inventory updated for Application, Infrastructure, and new Tests section (unit/application and unit/api).  
+   - Phase 2 domain summary updated to mention RECEIVED in EventStatus.
+
+3. **docs/PROJECT_STRUCTURE.md**  
+   - app/application/ — Now describes EventService as transaction boundary, create_event flow, EventRepository protocol, application exceptions.  
+   - app/workflows/ — Now describes WorkflowTrigger protocol and DummyWorkflowTrigger.  
+   - app/infrastructure/ — Now mentions event_repository_redis.py for the event store.  
+   - Quick reference — “New application service” and “New workflow” updated for Phase 4 patterns.
+
+4. **README.md**  
+   Project layout — Application layer (Phase 4) and workflows (trigger interface + dummy) described; tests mention unit/application and unit/api.
+
+5. **docs/llm_context/master_architecture_prompt.md**  
+   Application layer (Phase 4) added under CURRENT PROJECT STATE: EventService flow and transaction rules, EventRepository protocol and Redis implementation, application exceptions and workflow trigger, RECEIVED status and API usage of create_event.
+
+6. **docs/TESTING_AND_LOCAL_SETUP.md**  
+   Run tests — Application layer unit tests and tests/unit/application/ described; added `pytest tests/unit/application/ -v` to the command examples.

@@ -50,9 +50,9 @@ async def test_events_idempotency_second_call_returns_cached(client: AsyncClient
 
 @pytest.mark.asyncio
 async def test_events_validation_error_returns_422(client: AsyncClient, tenant_headers):
-    """Invalid payload (e.g. risk_score > 100) returns 422."""
+    """Invalid payload (e.g. empty version) returns 422."""
     headers = {**tenant_headers, "X-Idempotency-Key": "key-422"}
-    body = {"tenant_id": "test-tenant", "version": "1.0", "risk_score": 150}
+    body = {"tenant_id": "test-tenant", "version": ""}
     r = await client.post("/events/", json=body, headers=headers)
     assert r.status_code == 422
     assert "detail" in r.json()

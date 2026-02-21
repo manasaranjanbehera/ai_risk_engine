@@ -1,6 +1,6 @@
 """Unit tests for EventService.create_event: happy path, idempotency, failures."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -20,7 +20,7 @@ def _risk_event(
         event_id=event_id,
         tenant_id=tenant_id,
         status=status,
-        created_at=datetime.utcnow(),
+        created_at=datetime.now(timezone.utc),
         metadata={"version": "1.0"},
         risk_score=50.0,
         category="fraud",
@@ -33,7 +33,7 @@ def _persisted(event_id: str = "evt-123", tenant_id: str = "tenant-1") -> Persis
         tenant_id=tenant_id,
         correlation_id="corr-1",
         status=EventStatus.RECEIVED,
-        created_at=datetime.utcnow(),
+        created_at=datetime.now(timezone.utc),
         metadata={"version": "1.0"},
         version="1.0",
     )
@@ -134,7 +134,7 @@ async def test_create_event_idempotent_replay_returns_cached(
         event_id="cached-id",
         tenant_id="tenant-1",
         status=EventStatus.RECEIVED,
-        created_at=datetime.utcnow(),
+        created_at=datetime.now(timezone.utc),
         metadata={},
         version="1.0",
     )

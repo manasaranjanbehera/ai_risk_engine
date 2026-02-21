@@ -1,3 +1,5 @@
+# Phase 4 — Application Layer (Cursor prompt)
+
 🎯 Objective
 
 Implement Phase 4 — Application Layer (Transaction Boundary / Orchestration Brain) for ai_risk_engine.
@@ -58,6 +60,7 @@ Messaging failure must not corrupt DB state
 
 Expected constructor:
 
+```python
 class EventService:
     def __init__(
         self,
@@ -67,6 +70,7 @@ class EventService:
         workflow_trigger: WorkflowTrigger,  # interface placeholder
         logger: Logger,
     ):
+```
 
 Dependencies must NOT be created internally.
 
@@ -74,6 +78,7 @@ Dependencies must NOT be created internally.
 
 Implement:
 
+```python
 async def create_event(
     self,
     event: BaseEvent,
@@ -81,6 +86,7 @@ async def create_event(
     idempotency_key: str,
     correlation_id: str,
 ) -> EventResponse
+```
 
 This is the only entry point.
 
@@ -89,7 +95,7 @@ Step 1 — Idempotency Enforcement
 
 Redis key format:
 
-idempotency:{tenant_id}:{idempotency_key}
+`idempotency:{tenant_id}:{idempotency_key}`
 
 If exists:
 
@@ -107,7 +113,7 @@ Step 2 — Persist Event
 
 Call repository:
 
-await repository.save(event)
+`await repository.save(event)`
 
 Must:
 
@@ -154,7 +160,7 @@ Step 4 — Trigger Workflow (Placeholder)
 
 Call:
 
-await workflow_trigger.start(event_id=..., tenant_id=...)
+`await workflow_trigger.start(event_id=..., tenant_id=...)`
 
 This should be a placeholder interface in:
 
@@ -166,6 +172,7 @@ Step 5 — Emit Audit Log
 
 Structured log:
 
+```json
 {
   "event": "event_created",
   "event_id": "...",
@@ -174,6 +181,7 @@ Structured log:
   "event_type": "...",
   "status": "RECEIVED"
 }
+```
 
 Use JSON logger.
 
@@ -209,9 +217,11 @@ app/workflows/interface.py
 
 Define:
 
+```python
 class WorkflowTrigger(Protocol):
     async def start(self, event_id: str, tenant_id: str) -> None:
         ...
+```
 
 Also create dummy implementation:
 

@@ -139,6 +139,13 @@ ai_risk_engine/
     ├── PROJECT_STRUCTURE.md           # Guide to project layout and conventions
     ├── FOLDER_AND_FILE_STRUCTURE.md   # This file — full tree reference
     ├── TESTING_AND_LOCAL_SETUP.md     # How to run and test locally (venv → health)
+    ├── development-phases/             # Cursor prompts and phase summaries (not used at runtime)
+    │   ├── README.md
+    │   ├── phase3-api-layer-prompt.md
+    │   ├── phase4-application-layer-prompt.md
+    │   ├── phase4-application-layer-summary.md
+    │   ├── phase4-documentation-updates-summary.md
+    │   └── phase4-tests-and-fixes-summary.md
     └── llm_context/
         └── master_architecture_prompt.md
 ```
@@ -213,6 +220,7 @@ ai_risk_engine/
 | `docs/PROJECT_STRUCTURE.md` | Project structure guide and conventions |
 | `docs/FOLDER_AND_FILE_STRUCTURE.md` | This file — full folder and file structure |
 | `docs/TESTING_AND_LOCAL_SETUP.md` | Local setup and testing (venv, run app, health check) |
+| `docs/development-phases/` | Cursor prompts and phase summaries (Phase 3 API layer, Phase 4 Application layer); not used at runtime |
 | `docs/llm_context/master_architecture_prompt.md` | LLM context / architecture prompt |
 
 ---
@@ -221,6 +229,7 @@ ai_risk_engine/
 
 - **Project layout and conventions:** [docs/PROJECT_STRUCTURE.md](./PROJECT_STRUCTURE.md)
 - **Local setup and testing:** [docs/TESTING_AND_LOCAL_SETUP.md](./TESTING_AND_LOCAL_SETUP.md)
+- **Development phase prompts and summaries:** [docs/development-phases/](./development-phases/README.md)
 - **Architecture / LLM context:** [docs/llm_context/master_architecture_prompt.md](./llm_context/master_architecture_prompt.md)
 
 Schema dump:

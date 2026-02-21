@@ -13,6 +13,7 @@ from app.api.middleware import (
 from app.api.routers import compliance, events, health, risk, tenant
 from app.config.logging import configure_logging
 from app.config.settings import get_settings
+from app.application.exceptions import ApplicationError, MessagingFailureError
 from app.domain.exceptions import DomainError, DomainValidationError
 
 settings = get_settings()
@@ -38,6 +39,16 @@ async def domain_validation_error_handler(request, exc: DomainValidationError):
 @app.exception_handler(DomainError)
 async def domain_error_handler(request, exc: DomainError):
     return JSONResponse(status_code=400, content={"detail": exc.message})
+
+
+@app.exception_handler(MessagingFailureError)
+async def messaging_failure_error_handler(request, exc: MessagingFailureError):
+    return JSONResponse(status_code=503, content={"detail": exc.message})
+
+
+@app.exception_handler(ApplicationError)
+async def application_error_handler(request, exc: ApplicationError):
+    return JSONResponse(status_code=500, content={"detail": exc.message})
 
 
 @app.exception_handler(Exception)

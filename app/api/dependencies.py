@@ -35,7 +35,11 @@ async def get_event_service(
     redis: Annotated[RedisClient, Depends(get_redis_client)],
     publisher: Annotated[RabbitMQPublisher, Depends(get_publisher)],
 ) -> EventService:
-    """Build EventService with injected repository, publisher, redis, workflow trigger, logger."""
+    """Build EventService with injected repository, publisher, redis, workflow trigger, logger.
+    Uses RedisEventRepository by default. To use DB-backed store, override this dependency
+    with a factory that injects DbEventRepository(session) from app.infrastructure.database.event_repository_db.
+    Run migrations/001_events_table.sql to create the events table.
+    """
     repository = RedisEventRepository(redis_client=redis)
     workflow_trigger = DummyWorkflowTrigger()
     logger = logging.getLogger(__name__)
