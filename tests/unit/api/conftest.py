@@ -1,4 +1,4 @@
-"""Fixtures for API unit tests: in-memory Redis, mock DB, AsyncClient."""
+"""Fixtures for API unit tests: in-memory Redis, mock DB, mock publisher, AsyncClient."""
 
 from typing import AsyncGenerator
 from unittest.mock import AsyncMock, MagicMock
@@ -38,22 +38,26 @@ async def override_get_db_session() -> AsyncGenerator[AsyncSession, None]:
     yield session
 
 
-def override_get_redis_client():
-    return FakeRedis()
-
-
 @pytest.fixture
 def fake_redis():
     return FakeRedis()
 
 
 @pytest.fixture
-def app_with_overrides(fake_redis):
-    """App with DB and Redis overridden for testing."""
+def mock_publisher():
+    """Mock RabbitMQ publisher so tests do not connect to real broker."""
+    p = AsyncMock()
+    p.publish = AsyncMock(return_value=None)
+    return p
+
+
+@pytest.fixture
+def app_with_overrides(fake_redis, mock_publisher):
+    """App with Redis and publisher overridden for testing."""
     from app.api import dependencies
 
-    app.dependency_overrides[dependencies.get_db_session] = override_get_db_session
     app.dependency_overrides[dependencies.get_redis_client] = lambda: fake_redis
+    app.dependency_overrides[dependencies.get_publisher] = lambda: mock_publisher
     yield app
     app.dependency_overrides.clear()
 

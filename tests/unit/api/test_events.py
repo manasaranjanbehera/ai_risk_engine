@@ -32,7 +32,7 @@ async def test_events_idempotency_first_call_stores(client: AsyncClient, tenant_
     data = r.json()
     assert "event_id" in data
     assert data["tenant_id"] == "test-tenant"
-    assert data["status"] == "created"
+    assert data["status"] == "received"
 
 
 @pytest.mark.asyncio

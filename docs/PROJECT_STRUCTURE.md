@@ -11,13 +11,13 @@ Here’s a high-level overview of the main folders and what they’re for:
 | Folder | Purpose |
 |--------|--------|
 | **`app/`** | Main application code. Everything that runs lives under here. |
-| **`app/application/`** | Application layer: services that orchestrate domain and infrastructure (e.g. `event_service.py`). |
+| **`app/application/`** | Application layer (transaction boundary): `EventService` with single entry point `create_event` (idempotency → persist → publish → workflow → audit → cache); `EventRepository` protocol and `PersistedEvent`; application exceptions. No HTTP/FastAPI; all dependencies injected. |
 | **`app/core/`** | Request-scoped context (e.g. correlation ID, tenant ID) used by middleware and logging. |
 | **`app/api/`** | HTTP layer: FastAPI routers (e.g. health, events), middleware, and shared dependencies. |
 | **`app/config/`** | Settings, logging, and environment-based configuration. |
 | **`app/domain/`** | Core business logic: **exceptions** (domain errors), **models** (e.g. EventStatus, BaseEvent, RiskEvent, ComplianceEvent with status lifecycle), **schemas** (request/response Pydantic models), **validators** (pure validation functions), policies, and domain services. No infrastructure or DB — easy to test and change. |
-| **`app/workflows/`** | Orchestration and workflows (e.g. LangGraph risk and compliance workflows and their nodes). |
-| **`app/infrastructure/`** | External systems: database (session, repository, ORM models), Redis cache (`redis_client.py`), RabbitMQ messaging, and placeholders for LLM, vector store, and tools. Keeps “plumbing” in one place. |
+| **`app/workflows/`** | Workflow trigger interface (`WorkflowTrigger` protocol) and placeholder implementation (`DummyWorkflowTrigger`). Future: LangGraph risk/compliance workflows. |
+| **`app/infrastructure/`** | External systems: database (session, repository, ORM models), Redis cache (`redis_client.py`, `event_repository_redis.py` for event store), RabbitMQ messaging, and placeholders for LLM, vector store, and tools. Keeps “plumbing” in one place. |
 | **`app/security/`** | Security concerns: encryption, RBAC, tenant context. |
 | **`app/governance/`** | Governance: prompt/model registry, audit logging, approval workflows. |
 | **`app/observability/`** | Metrics, tracing, evaluation, and integration with observability tools (e.g. Langfuse). |
@@ -137,9 +137,9 @@ You can then create a branch (e.g. `docs/project-structure` or `main`) and push 
 ## Quick reference: where to put what
 
 - **New API route** → `app/api/routers/` (e.g. a new file or router module such as `events.py`).
-- **New application service** → `app/application/` (e.g. `event_service.py` — orchestrates domain + infrastructure).
+- **New application service** → `app/application/` (e.g. `event_service.py` — transaction boundary: idempotency, persist, publish, workflow, audit; use `EventRepository` protocol and application exceptions).
 - **New business rule or model** → `app/domain/models/` or `app/domain/services/`; schemas in `app/domain/schemas/`, validators in `app/domain/validators/`, domain-specific errors in `app/domain/exceptions.py`.
-- **New workflow or pipeline** → `app/workflows/`.
+- **New workflow or pipeline** → `app/workflows/` (implement `WorkflowTrigger` protocol; use `interface.py` for the protocol).
 - **New integration (DB, API client, queue, cache)** → `app/infrastructure/` (e.g. `database/models.py`, `database/repository.py`, `database/session.py`, `messaging/rabbitmq_publisher.py`, `cache/redis_client.py`).
 - **New config or env variable** → `app/config/` (e.g. in `settings.py` or a dedicated module).
 - **New test** → `tests/unit/`, `tests/integration/`, etc., mirroring the `app/` structure if you like.

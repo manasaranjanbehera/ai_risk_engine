@@ -30,7 +30,17 @@ The domain package (`app/domain/`) is implemented and infrastructure-free:
 - **Models** (`app/domain/models/event.py`): `EventStatus` enum (created → validated → processing → approved/rejected/failed) with enforced transitions; `BaseEvent` (with `transition_to()`), `RiskEvent`, `ComplianceEvent`.
 - **Schemas** (`app/domain/schemas/event.py`): `RiskEventCreateRequest`, `ComplianceEventCreateRequest`, `EventResponse`; Pydantic validators for tenant_id, risk_score 0–100, JSON-serializable metadata, version.
 - **Validators** (`app/domain/validators/event_validator.py`): Pure functions for tenant_id, risk_score, metadata, status transitions; request and entity validation; all raise domain exceptions.
-- **Public API**: Import from `app.domain` (see `__init__.py` for `__all__`). Application layer (`event_service.py`) will orchestrate domain + infrastructure; event API can use domain schemas and validators.
+- **Public API**: Import from `app.domain` (see `__init__.py` for `__all__`).
+
+**Application layer (Phase 4)**  
+The application layer is the **transaction boundary**; orchestration only, no HTTP/FastAPI, all dependencies injected.
+
+- **EventService** (`app/application/event_service.py`): Single entry point `create_event(event, tenant_id, idempotency_key, correlation_id) -> EventResponse`. Flow: (1) idempotency check → (2) persist via repository (status RECEIVED) → (3) publish to RabbitMQ (exchange `risk_events`, routing by event type) → (4) workflow trigger (placeholder) → (5) audit log → (6) cache idempotency → (7) return response. Also `get_event(tenant_id, event_id)`. Messaging failure fails the transaction (do not cache idempotency); workflow failure is logged but does not fail the transaction.
+- **EventRepository** (`app/application/event_repository.py`): Protocol with `save(event, correlation_id) -> PersistedEvent` and `get(tenant_id, event_id) -> Optional[PersistedEvent]`. Implementation: `RedisEventRepository` in `app/infrastructure/cache/event_repository_redis.py`.
+- **Application exceptions** (`app/application/exceptions.py`): `ApplicationError`, `IdempotencyConflictError`, `MessagingFailureError` (do not reuse domain exceptions).
+- **Workflow trigger** (`app/workflows/interface.py`): `WorkflowTrigger` protocol with `async def start(event_id, tenant_id)`. Placeholder: `DummyWorkflowTrigger` in `app/workflows/dummy_workflow.py`.
+- **Domain**: `EventStatus.RECEIVED` added for first persisted state; validators include RECEIVED in transitions.
+- **API**: Routers (events, risk, compliance) validate requests, build domain events, call `create_event` with correlation_id; dependencies inject EventService (repository, publisher, redis, workflow_trigger, logger).
 
 Infrastructure (Dockerized & Running)
 

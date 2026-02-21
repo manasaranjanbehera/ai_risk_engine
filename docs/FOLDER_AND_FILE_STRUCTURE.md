@@ -2,7 +2,22 @@
 
 This document describes the current folder and file layout of the **ai_risk_engine** project (excluding `.git`, `__pycache__`, and `venv/`). Use it as a quick reference for where code and assets live.
 
-**Last updated:** February 21, 2025 (Phase 2 — domain layer: exceptions, event lifecycle, validators)
+**Last updated:** February 21, 2025 (Phase 4 — application layer: event service, repository protocol, workflows)
+
+---
+
+## Phase 4 application layer (summary)
+
+The application layer is the **transaction boundary**: orchestration only, no HTTP/FastAPI, all dependencies injected.
+
+- **`app/application/event_service.py`** — Single entry point `create_event(event, tenant_id, idempotency_key, correlation_id)`; flow: idempotency → persist → publish (RabbitMQ) → workflow trigger → audit log → cache idempotency → return `EventResponse`. Also `get_event(tenant_id, event_id)`.
+- **`app/application/event_repository.py`** — `EventRepository` protocol (`save`, `get`) and `PersistedEvent` dataclass.
+- **`app/application/exceptions.py`** — `ApplicationError`, `IdempotencyConflictError`, `MessagingFailureError` (do not reuse domain exceptions).
+- **`app/workflows/interface.py`** — `WorkflowTrigger` protocol (`async def start(event_id, tenant_id)`).
+- **`app/workflows/dummy_workflow.py`** — `DummyWorkflowTrigger` placeholder (logs only).
+- **`app/infrastructure/cache/event_repository_redis.py`** — `RedisEventRepository` implements event persistence (Redis, 7-day TTL).
+
+Domain: `EventStatus.RECEIVED` added; validators include RECEIVED in transitions.
 
 ---
 
@@ -11,7 +26,7 @@ This document describes the current folder and file layout of the **ai_risk_engi
 The domain package (`app/domain/`) is self-contained and free of infrastructure:
 
 - **`exceptions.py`** — Base `DomainError` and specific errors for validation, status transitions, tenant, risk threshold, and metadata.
-- **`models/event.py`** — `EventStatus` enum (created → validated → processing → approved/rejected/failed), allowed transitions, `BaseEvent` with `transition_to()`, and entity types `RiskEvent`, `ComplianceEvent`.
+- **`models/event.py`** — `EventStatus` enum (received → created → validated → processing → approved/rejected/failed), allowed transitions, `BaseEvent` with `transition_to()`, and entity types `RiskEvent`, `ComplianceEvent`.
 - **`schemas/event.py`** — Pydantic request schemas (`RiskEventCreateRequest`, `ComplianceEventCreateRequest`) and `EventResponse`; validators for tenant_id, risk_score 0–100, JSON-serializable metadata, version.
 - **`validators/event_validator.py`** — Pure functions that enforce domain rules and raise domain exceptions; used for both API request validation and entity validation.
 
@@ -41,14 +56,21 @@ ai_risk_engine/
 │   │
 │   ├── application/
 │   │   ├── __init__.py
-│   │   └── event_service.py
+│   │   ├── event_repository.py   # EventRepository protocol, PersistedEvent
+│   │   ├── event_service.py      # create_event, get_event (transaction boundary)
+│   │   └── exceptions.py         # ApplicationError, IdempotencyConflictError, MessagingFailureError
 │   │
 │   ├── api/
 │   │   ├── __init__.py
+│   │   ├── dependencies.py       # get_event_service, get_redis_client, get_publisher, get_correlation_id
+│   │   ├── middleware.py
 │   │   └── routers/
 │   │       ├── __init__.py
-│   │       ├── health.py   # Health check endpoint (mounted in main)
-│   │       └── events.py   # Events API (module present; mount in main when needed)
+│   │       ├── health.py         # Health check (mounted in main)
+│   │       ├── events.py        # POST/GET events (idempotent create_event)
+│   │       ├── risk.py          # POST /risk (uses create_event)
+│   │       ├── compliance.py    # POST /compliance (uses create_event)
+│   │       └── tenant.py
 │   │
 │   ├── config/
 │   │   ├── __init__.py
@@ -82,7 +104,8 @@ ai_risk_engine/
 │   │   │   └── rabbitmq_publisher.py
 │   │   ├── cache/
 │   │   │   ├── __init__.py
-│   │   │   └── redis_client.py   # Redis client (idempotency, etc.)
+│   │   │   ├── redis_client.py           # Redis client (idempotency, cache)
+│   │   │   └── event_repository_redis.py  # RedisEventRepository (event store)
 │   │   ├── llm/            # (placeholder)
 │   │   ├── tools/          # (placeholder)
 │   │   └── vectorstore/    # (placeholder)
@@ -90,7 +113,10 @@ ai_risk_engine/
 │   ├── governance/         # (placeholder — approval, audit, registries)
 │   ├── observability/      # (placeholder — metrics, tracing)
 │   ├── security/           # (placeholder — encryption, RBAC, tenant)
-│   └── workflows/          # (placeholder — LangGraph workflows)
+│   └── workflows/
+│       ├── __init__.py
+│       ├── interface.py    # WorkflowTrigger protocol
+│       └── dummy_workflow.py  # DummyWorkflowTrigger (placeholder)
 │
 ├── docker/                 # (empty — Dockerfiles/scripts go here)
 ├── migrations/             # (empty — DB migrations go here)
@@ -102,6 +128,9 @@ ai_risk_engine/
 │
 ├── tests/
 │   ├── unit/
+│   │   ├── application/    # EventService unit tests (Phase 4)
+│   │   │   └── test_event_service.py
+│   │   └── api/
 │   ├── integration/
 │   ├── load/
 │   └── workflow/
@@ -135,20 +164,28 @@ ai_risk_engine/
 |------|-------------|
 | `app/main.py` | FastAPI app, context middleware (correlation/tenant headers), router includes |
 | `app/core/context.py` | Context vars: `correlation_id_ctx`, `tenant_id_ctx` |
-| `app/application/event_service.py` | Event application service (orchestrates domain + infrastructure) |
+| `app/application/event_service.py` | Event application service: `create_event` (idempotency → persist → publish → workflow → audit → cache), `get_event`; transaction boundary, no HTTP |
+| `app/application/event_repository.py` | `EventRepository` protocol (save, get), `PersistedEvent` dataclass |
+| `app/application/exceptions.py` | Application errors: `ApplicationError`, `IdempotencyConflictError`, `MessagingFailureError` |
+| `app/api/dependencies.py` | DI: `get_event_service`, `get_redis_client`, `get_publisher`, `get_tenant_id`, `get_correlation_id` |
 | `app/api/routers/health.py` | Health check: `GET /health` (status, environment, version) — mounted in main |
-| `app/api/routers/events.py` | Events API routes (mount in main when needed) |
+| `app/api/routers/events.py` | Events API: POST/GET events; builds domain events, calls `create_event` |
+| `app/api/routers/risk.py` | POST /risk — builds RiskEvent, calls `create_event` |
+| `app/api/routers/compliance.py` | POST /compliance — builds ComplianceEvent, calls `create_event` |
 | `app/infrastructure/cache/redis_client.py` | Redis async client (idempotency keys, cache) |
+| `app/infrastructure/cache/event_repository_redis.py` | `RedisEventRepository`: persist events to Redis (status RECEIVED), 7-day TTL |
 | `app/config/settings.py` | Main settings (Pydantic BaseSettings, `.env`) |
 | `app/config/logging.py` | Logging config (JSON formatter, correlation/tenant in logs) |
 | `app/domain/exceptions.py` | Domain errors: `DomainError`, `DomainValidationError`, `InvalidStatusTransitionError`, `InvalidTenantError`, `RiskThresholdViolationError`, `InvalidMetadataError` |
-| `app/domain/models/event.py` | Event domain model: `EventStatus` lifecycle, `BaseEvent` (with `transition_to()`), `RiskEvent`, `ComplianceEvent` |
+| `app/domain/models/event.py` | Event domain model: `EventStatus` (incl. RECEIVED), `BaseEvent` (with `transition_to()`), `RiskEvent`, `ComplianceEvent` |
 | `app/domain/schemas/event.py` | Event request/response schemas: `RiskEventCreateRequest`, `ComplianceEventCreateRequest`, `EventResponse` (Pydantic; metadata JSON-serializable, risk 0–100) |
 | `app/domain/validators/event_validator.py` | Pure validators: tenant_id, risk_score, metadata, status transition; request and entity validation |
 | `app/infrastructure/database/models.py` | Database ORM models |
 | `app/infrastructure/database/repository.py` | Database repository (CRUD, queries; e.g. AsyncRepository) |
 | `app/infrastructure/database/session.py` | Database session factory and dependency |
 | `app/infrastructure/messaging/rabbitmq_publisher.py` | RabbitMQ message publisher |
+| `app/workflows/interface.py` | `WorkflowTrigger` protocol: `async def start(event_id, tenant_id)` |
+| `app/workflows/dummy_workflow.py` | `DummyWorkflowTrigger` — placeholder implementation (logs only) |
 
 ### Scripts (`scripts/`)
 
@@ -158,6 +195,16 @@ ai_risk_engine/
 | `test_redis.py` | Test Redis connectivity |
 | `test_rabbit.py` | Test RabbitMQ connectivity |
 | `test_repository.py` | Test repository CRUD (test_events table) |
+
+### Tests (`tests/`)
+
+| Path | Description |
+|------|-------------|
+| `tests/unit/application/test_event_service.py` | EventService unit tests: happy path, idempotent replay, messaging/repository/workflow failure (Phase 4) |
+| `tests/unit/api/conftest.py` | API test fixtures: FakeRedis, mock_publisher, app_with_overrides |
+| `tests/unit/api/test_events.py` | Events API: idempotency, validation, GET by id |
+| `tests/unit/api/test_risk.py` | POST /risk: valid payload, validation failure, idempotency |
+| `tests/unit/api/test_compliance.py` | POST /compliance: valid payload, validation, idempotency |
 
 ### Documentation (`docs/`)
 

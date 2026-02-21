@@ -36,9 +36,9 @@ For detailed steps (including optional Docker Compose for Postgres/Redis/RabbitM
 
 ## Project layout
 
-- **`app/`** — Application code: FastAPI app, API routers (health; events module present), config, **domain** (models, schemas, validators, exceptions — Phase 2), and infrastructure.
+- **`app/`** — Application code: FastAPI app, API routers (health, events, risk, compliance), config, **domain** (models, schemas, validators, exceptions), **application layer** (Phase 4: `EventService` as transaction boundary — idempotency, persist, publish, workflow, audit), **workflows** (trigger interface + dummy), and infrastructure.
 - **`docs/`** — Documentation (structure, testing, architecture).
-- **`tests/`** — Unit, integration, load, and workflow tests (structure in place).
+- **`tests/`** — Unit tests (`unit/application` for EventService, `unit/api` for routers), integration, load, workflow.
 - **`docker-compose.yml`** — Local Postgres, RabbitMQ, and Redis. **`schema.sql`** — PostgreSQL schema dump (reference).
 
 | Doc | Description |

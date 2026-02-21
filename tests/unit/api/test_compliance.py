@@ -33,7 +33,7 @@ async def test_compliance_valid_payload_returns_200(client: AsyncClient, tenant_
     data = r.json()
     assert "event_id" in data
     assert data["tenant_id"] == "test-tenant"
-    assert data["status"] == "created"
+    assert data["status"] == "received"
 
 
 @pytest.mark.asyncio

@@ -11,6 +11,7 @@ from app.domain.exceptions import InvalidStatusTransitionError
 class EventStatus(str, Enum):
     """Lifecycle status for domain events. Transitions are validated."""
 
+    RECEIVED = "received"  # Persisted at application boundary; first stored state
     CREATED = "created"
     VALIDATED = "validated"
     PROCESSING = "processing"
@@ -21,6 +22,7 @@ class EventStatus(str, Enum):
 
 # Allowed status transitions: from_status -> set of valid next statuses
 _STATUS_TRANSITIONS: Dict[EventStatus, FrozenSet[EventStatus]] = {
+    EventStatus.RECEIVED: frozenset({EventStatus.VALIDATED, EventStatus.REJECTED}),
     EventStatus.CREATED: frozenset({EventStatus.VALIDATED, EventStatus.REJECTED}),
     EventStatus.VALIDATED: frozenset({EventStatus.PROCESSING}),
     EventStatus.PROCESSING: frozenset({EventStatus.APPROVED, EventStatus.REJECTED, EventStatus.FAILED}),

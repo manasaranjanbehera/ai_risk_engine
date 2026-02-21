@@ -189,7 +189,7 @@ Ensure Docker services are up and `.env` is set before running these.
 
 ## 10. Run tests (when added)
 
-The project has test directories under `tests/` (`unit/`, `integration/`, `load/`, `workflow/`). The domain layer (`app/domain/`: models, schemas, validators, exceptions) is designed for easy unit testing without infrastructure. When tests are added, you can run them with pytest from the project root:
+The project has test directories under `tests/` (`unit/`, `integration/`, `load/`, `workflow/`). The domain layer (`app/domain/`) and application layer (`app/application/`: EventService, repository protocol) are designed for unit testing with mocked dependencies. Application-layer tests live in `tests/unit/application/` (e.g. `test_event_service.py`). Run tests with pytest from the project root:
 
 ```bash
 # Install dev dependencies if you have a dev requirements file
@@ -198,6 +198,8 @@ The project has test directories under `tests/` (`unit/`, `integration/`, `load/
 pytest
 # Or only unit tests:
 pytest tests/unit/
+# Or only application-layer unit tests (Phase 4):
+pytest tests/unit/application/ -v
 ```
 
 ---

@@ -56,6 +56,7 @@ def validate_status_transition(current: EventStatus, new: EventStatus) -> None:
 def _allowed_transitions() -> dict:
     """Allowed status transitions. Pure data, no side effects."""
     return {
+        EventStatus.RECEIVED: frozenset({EventStatus.VALIDATED, EventStatus.REJECTED}),
         EventStatus.CREATED: frozenset({EventStatus.VALIDATED, EventStatus.REJECTED}),
         EventStatus.VALIDATED: frozenset({EventStatus.PROCESSING}),
         EventStatus.PROCESSING: frozenset({EventStatus.APPROVED, EventStatus.REJECTED, EventStatus.FAILED}),
