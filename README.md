@@ -20,6 +20,7 @@ FastAPI-based service for AI risk, compliance, and governance. This repository c
    - `JWT_SECRET` (min 32 characters)
    - `DATABASE_URL`
    - `REDIS_URL`
+   - `RABBITMQ_URL`
 
 4. **Run the application**
    ```bash
@@ -35,10 +36,10 @@ For detailed steps (including optional Docker Compose for Postgres/Redis/RabbitM
 
 ## Project layout
 
-- **`app/`** — Application code: FastAPI app, API routers (e.g. health, events), config, domain, and infrastructure.
+- **`app/`** — Application code: FastAPI app, API routers (health; events module present), config, domain, and infrastructure.
 - **`docs/`** — Documentation (structure, testing, architecture).
 - **`tests/`** — Unit, integration, load, and workflow tests (structure in place).
-- **`docker-compose.yml`** — Local Postgres, RabbitMQ, and Redis.
+- **`docker-compose.yml`** — Local Postgres, RabbitMQ, and Redis. **`schema.sql`** — PostgreSQL schema dump (reference).
 
 | Doc | Description |
 |-----|-------------|

@@ -40,6 +40,8 @@ RabbitMQ dashboard accessible
 
 Redis responding
 
+Application clients: database (session, repository, ORM models), Redis (`app/infrastructure/cache/redis_client.py` — idempotency/cache), RabbitMQ publisher (`app/infrastructure/messaging/rabbitmq_publisher.py`). Connectivity test scripts in `scripts/` (test_db, test_redis, test_rabbit, test_repository).
+
 Do NOT redesign infra unless explicitly asked.
 
 Database Layer

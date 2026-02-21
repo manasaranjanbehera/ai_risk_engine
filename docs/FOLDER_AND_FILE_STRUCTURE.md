@@ -2,7 +2,7 @@
 
 This document describes the current folder and file layout of the **ai_risk_engine** project (excluding `.git`, `__pycache__`, and `venv/`). Use it as a quick reference for where code and assets live.
 
-**Last updated:** February 19, 2025
+**Last updated:** February 21, 2025
 
 ---
 
@@ -15,6 +15,7 @@ ai_risk_engine/
 ├── .gitignore
 ├── README.md
 ├── requirements.txt        # Python dependencies
+├── schema.sql              # PostgreSQL schema dump (reference)
 ├── docker-compose.yml      # Local services (Postgres, RabbitMQ, Redis)
 │
 ├── app/
@@ -31,11 +32,10 @@ ai_risk_engine/
 │   │
 │   ├── api/
 │   │   ├── __init__.py
-│   │   ├── middleware.py   # (placeholder / minimal)
 │   │   └── routers/
 │   │       ├── __init__.py
-│   │       ├── health.py   # Health check endpoint
-│   │       └── events.py
+│   │       ├── health.py   # Health check endpoint (mounted in main)
+│   │       └── events.py   # Events API (module present; mount in main when needed)
 │   │
 │   ├── config/
 │   │   ├── __init__.py
@@ -66,7 +66,9 @@ ai_risk_engine/
 │   │   ├── messaging/
 │   │   │   ├── __init__.py
 │   │   │   └── rabbitmq_publisher.py
-│   │   ├── cache/          # (placeholder)
+│   │   ├── cache/
+│   │   │   ├── __init__.py
+│   │   │   └── redis_client.py   # Redis client (idempotency, etc.)
 │   │   ├── llm/            # (placeholder)
 │   │   ├── tools/          # (placeholder)
 │   │   └── vectorstore/    # (placeholder)
@@ -78,7 +80,11 @@ ai_risk_engine/
 │
 ├── docker/                 # (empty — Dockerfiles/scripts go here)
 ├── migrations/             # (empty — DB migrations go here)
-├── scripts/                # (empty — utility/seed scripts go here)
+├── scripts/                # Utility and connectivity test scripts
+│   ├── test_db.py          # Test Postgres connectivity
+│   ├── test_redis.py       # Test Redis connectivity
+│   ├── test_rabbit.py      # Test RabbitMQ connectivity
+│   └── test_repository.py  # Test repository CRUD (test_events)
 │
 ├── tests/
 │   ├── unit/
@@ -102,31 +108,41 @@ ai_risk_engine/
 
 | File | Description |
 |------|-------------|
-| `.env.example` | Template for required/optional env vars; copy to `.env` |
+| `.env.example` | Template for required/optional env vars; copy to `.env` (includes JWT_SECRET, DATABASE_URL, REDIS_URL, RABBITMQ_URL) |
 | `.gitignore` | Git ignore rules (venv, .env, IDE, etc.) |
 | `README.md` | Project overview and quick start |
-| `requirements.txt` | Python dependencies (FastAPI, uvicorn, pydantic-settings, etc.) |
+| `requirements.txt` | Python dependencies (FastAPI, uvicorn, pydantic-settings, asyncpg, aio_pika, SQLAlchemy, etc.) |
+| `schema.sql` | PostgreSQL schema dump (reference); generate with `docker exec -t compliance_postgres pg_dump ...` |
 | `docker-compose.yml` | Local services: Postgres, RabbitMQ, Redis |
 
 ### Application (`app/`)
 
 | Path | Description |
 |------|-------------|
-| `app/main.py` | FastAPI app, context middleware, router includes |
+| `app/main.py` | FastAPI app, context middleware (correlation/tenant headers), router includes |
 | `app/core/context.py` | Context vars: `correlation_id_ctx`, `tenant_id_ctx` |
 | `app/application/event_service.py` | Event application service (orchestrates domain + infrastructure) |
-| `app/api/middleware.py` | HTTP middleware (minimal/placeholder) |
-| `app/api/routers/health.py` | Health check: `GET /health` (status, environment, version) |
-| `app/api/routers/events.py` | Events API routes |
+| `app/api/routers/health.py` | Health check: `GET /health` (status, environment, version) — mounted in main |
+| `app/api/routers/events.py` | Events API routes (mount in main when needed) |
+| `app/infrastructure/cache/redis_client.py` | Redis async client (idempotency keys, cache) |
 | `app/config/settings.py` | Main settings (Pydantic BaseSettings, `.env`) |
 | `app/config/logging.py` | Logging config (JSON formatter, correlation/tenant in logs) |
 | `app/domain/models/event.py` | Event domain model |
 | `app/domain/schemas/event.py` | Event request/response schemas |
 | `app/domain/validators/event_validator.py` | Event validation logic |
 | `app/infrastructure/database/models.py` | Database ORM models |
-| `app/infrastructure/database/repository.py` | Database repository (CRUD, queries) |
+| `app/infrastructure/database/repository.py` | Database repository (CRUD, queries; e.g. AsyncRepository) |
 | `app/infrastructure/database/session.py` | Database session factory and dependency |
 | `app/infrastructure/messaging/rabbitmq_publisher.py` | RabbitMQ message publisher |
+
+### Scripts (`scripts/`)
+
+| Script | Description |
+|--------|-------------|
+| `test_db.py` | Test Postgres connectivity |
+| `test_redis.py` | Test Redis connectivity |
+| `test_rabbit.py` | Test RabbitMQ connectivity |
+| `test_repository.py` | Test repository CRUD (test_events table) |
 
 ### Documentation (`docs/`)
 
