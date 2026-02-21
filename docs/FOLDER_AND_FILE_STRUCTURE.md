@@ -2,7 +2,26 @@
 
 This document describes the current folder and file layout of the **ai_risk_engine** project (excluding `.git`, `__pycache__`, and `venv/`). Use it as a quick reference for where code and assets live.
 
-**Last updated:** February 21, 2025 (Phase 6 — AI workflows)
+**Last updated:** February 21, 2025 (Phase 7 — Observability & production hardening)
+
+---
+
+## Phase 7 Observability & production hardening (summary)
+
+Observability is in-memory and simulated (no real Prometheus/OTLP/SaaS). All services are dependency-injected; workflows optionally accept metrics, tracing, cost, failure classifier, Langfuse client, and evaluation service.
+
+- **`app/observability/metrics.py`** — `MetricsCollector`: counters (request_count by tenant, workflow_execution_count, failure_count by category, approval_required_count, model_usage_count, prompt_usage_count); histograms (node_execution_latency, request_latency); thread-safe; `increment`, `observe_latency`, `export_metrics`.
+- **`app/observability/tracing.py`** — `TracingService`: OpenTelemetry-style spans; trace ID propagation; span hierarchy (workflow → nodes); latency and metadata (tenant_id, correlation_id, model_version, prompt_version); in-memory exporter; async `start_span` context manager.
+- **`app/observability/langfuse_client.py`** — Simulated Langfuse: `log_generation` (event_id, tenant_id, prompt/model version, tokens, cost, latency); integrates with `CostTracker` and `MetricsCollector`; no external calls.
+- **`app/observability/evaluation.py`** — `EvaluationService.evaluate_decision`: deterministic confidence, policy alignment, guardrail, and overall quality scores; stores result in workflow state; emits audit event.
+- **`app/observability/cost_tracker.py`** — `CostTracker`: cost per request, per tenant, per model version; cumulative; deterministic (e.g. token_count × rate); `add_cost`, `get_tenant_cost`, `add_cost_from_tokens`.
+- **`app/observability/failure_classifier.py`** — `FailureClassifier.classify(exception)` → `FailureCategory` (VALIDATION_ERROR, POLICY_VIOLATION, HIGH_RISK, WORKFLOW_ERROR, INFRA_ERROR, UNEXPECTED_ERROR); maps domain/application/governance/security exceptions; unknown → UNEXPECTED_ERROR.
+
+**Workflow integration:** `RiskWorkflow` and `ComplianceWorkflow` accept optional `metrics_collector`, `tracing_service`, `cost_tracker`, `failure_classifier`, `langfuse_client`, `evaluation_service`. When provided: request_count and workflow_execution_count incremented; per-node spans and latency; model/prompt usage counts; approval_required_count when decision escalates; request_latency; cost recorded; Langfuse generation log; evaluation result stored in state; on exception, failure classified and failure_count incremented.
+
+**State:** `RiskState` and `ComplianceState` include optional `evaluation_result` (dict) for quality scores.
+
+Tests: `tests/unit/observability/` (metrics, tracing, Langfuse, evaluation, cost tracker, failure classifier, workflow integration).
 
 ---
 
@@ -158,7 +177,14 @@ ai_risk_engine/
 │   │   ├── prompt_registry.py   # PromptRegistry, PromptRecord
 │   │   ├── approval_workflow.py  # ApprovalWorkflow, ApprovalStatus
 │   │   └── exceptions.py        # GovernanceError, ModelNotApprovedError, etc.
-│   ├── observability/      # (placeholder — metrics, tracing)
+│   ├── observability/      # Phase 7: metrics, tracing, cost, failure classification, evaluation, Langfuse
+│   │   ├── __init__.py
+│   │   ├── metrics.py           # MetricsCollector (Prometheus-style, thread-safe)
+│   │   ├── tracing.py           # TracingService (OpenTelemetry-style, in-memory)
+│   │   ├── langfuse_client.py  # Simulated Langfuse (log_generation, cost, metrics)
+│   │   ├── evaluation.py       # EvaluationService (quality scoring, audit)
+│   │   ├── cost_tracker.py     # CostTracker (per tenant/model/request)
+│   │   └── failure_classifier.py  # FailureClassifier (exception → FailureCategory)
 │   ├── security/           # Phase 5: RBAC, tenant isolation, encryption
 │   │   ├── __init__.py
 │   │   ├── rbac.py              # Role, RBACService
@@ -196,6 +222,14 @@ ai_risk_engine/
 │   ├── unit/
 │   │   ├── application/    # EventService unit tests (Phase 4)
 │   │   │   └── test_event_service.py
+│   │   ├── observability/ # Phase 7: metrics, tracing, cost, failure, evaluation, Langfuse, workflow integration
+│   │   │   ├── test_metrics.py
+│   │   │   ├── test_tracing.py
+│   │   │   ├── test_langfuse_client.py
+│   │   │   ├── test_evaluation.py
+│   │   │   ├── test_cost_tracker.py
+│   │   │   ├── test_failure_classifier.py
+│   │   │   └── test_workflow_integration.py
 │   │   ├── workflows/      # Phase 6: state, nodes, risk/compliance workflow, failures
 │   │   │   ├── conftest.py
 │   │   │   ├── test_state_models.py
@@ -292,6 +326,12 @@ ai_risk_engine/
 | `app/security/tenant_context.py` | `TenantContext.validate_access`; strict tenant isolation |
 | `app/security/encryption.py` | `EncryptionService` — AES (Fernet), env key, no global state |
 | `app/security/exceptions.py` | `SecurityError`, `AuthorizationError`, `TenantIsolationError`, `EncryptionError` |
+| `app/observability/metrics.py` | `MetricsCollector`: counters (request/workflow/failure/approval/model/prompt), histograms (latency); thread-safe; export_metrics |
+| `app/observability/tracing.py` | `TracingService`: OpenTelemetry-style spans; trace/span hierarchy; in-memory; async start_span |
+| `app/observability/langfuse_client.py` | Simulated Langfuse: log_generation; integrates with CostTracker and MetricsCollector |
+| `app/observability/evaluation.py` | `EvaluationService.evaluate_decision`: deterministic quality scores; audit |
+| `app/observability/cost_tracker.py` | `CostTracker`: per tenant/model/request; add_cost_from_tokens; deterministic rate |
+| `app/observability/failure_classifier.py` | `FailureClassifier.classify(exception)` → FailureCategory (VALIDATION_ERROR, etc.) |
 
 ### Scripts (`scripts/`)
 
@@ -307,6 +347,7 @@ ai_risk_engine/
 | Path | Description |
 |------|-------------|
 | `tests/unit/application/test_event_service.py` | EventService unit tests: happy path, idempotent replay, messaging/repository/workflow failure (Phase 4) |
+| `tests/unit/observability/*.py` | Phase 7: metrics, tracing, cost, failure classifier, evaluation, Langfuse, workflow integration |
 | `tests/unit/workflows/*.py` | Phase 6: state, nodes, risk/compliance workflow, idempotency, failures, state store |
 | `tests/unit/governance/test_audit_logger.py` | Audit immutability, audit fields completeness |
 | `tests/unit/governance/test_model_registry.py` | Model approve/reject, cannot approve twice, cannot deploy unapproved |
@@ -327,7 +368,8 @@ ai_risk_engine/
 | `docs/PROJECT_STRUCTURE.md` | Project structure guide and conventions |
 | `docs/FOLDER_AND_FILE_STRUCTURE.md` | This file — full folder and file structure |
 | `docs/TESTING_AND_LOCAL_SETUP.md` | Local setup and testing (venv, run app, health check) |
-| `docs/development-phases/` | Cursor prompts and phase summaries (Phase 3 API layer, Phase 4 Application layer); not used at runtime |
+| `docs/development-phases/` | Cursor prompts and phase summaries (Phase 3–7); not used at runtime |
+| `app/docs/development-phase/` | Phase summaries (e.g. PHASE_6_AI_WORKFLOWS.md, PHASE_7_OBSERVABILITY_AND_PRODUCTION_HARDENING.md) |
 | `docs/llm_context/master_architecture_prompt.md` | LLM context / architecture prompt |
 
 ---

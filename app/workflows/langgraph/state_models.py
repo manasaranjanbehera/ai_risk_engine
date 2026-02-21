@@ -24,6 +24,7 @@ class RiskState(BaseModel):
     prompt_version: int = 1
     audit_trail: list[dict[str, Any]] = Field(default_factory=list)
     idempotency_key: str | None = None
+    evaluation_result: dict[str, Any] | None = None
 
     model_config = {"frozen": False}  # Pydantic allows copy; we never mutate in place in nodes
 
@@ -53,6 +54,7 @@ class ComplianceState(BaseModel):
     prompt_version: int = 1
     audit_trail: list[dict[str, Any]] = Field(default_factory=list)
     idempotency_key: str | None = None
+    evaluation_result: dict[str, Any] | None = None
 
     model_config = {"frozen": False}
 
