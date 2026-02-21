@@ -2,7 +2,26 @@
 
 This document describes the current folder and file layout of the **ai_risk_engine** project (excluding `.git`, `__pycache__`, and `venv/`). Use it as a quick reference for where code and assets live.
 
-**Last updated:** February 21, 2025 (Phase 5 — governance & security)
+**Last updated:** February 21, 2025 (Phase 6 — AI workflows)
+
+---
+
+## Phase 6 AI workflows (summary)
+
+LangGraph-style deterministic pipelines; no FastAPI in workflow layer; all dependencies injected.
+
+- **`app/workflows/langgraph/state_models.py`** — `RiskState`, `ComplianceState` (Pydantic); immutable transitions via `transition()`; fully serializable; version metadata (model_version, prompt_version), audit_trail.
+- **`app/workflows/langgraph/nodes/retrieval.py`** — `retrieve_context(state)` — simulated vector retrieval; audit "context_retrieved".
+- **`app/workflows/langgraph/nodes/policy_validation.py`** — `validate_policy(state)` — rule-based PASS/FAIL; audit.
+- **`app/workflows/langgraph/nodes/risk_scoring.py`** — `score_risk(state)` — deterministic score; audit.
+- **`app/workflows/langgraph/nodes/guardrails.py`** — `apply_guardrails(state)` — threshold/blocked patterns; audit.
+- **`app/workflows/langgraph/nodes/decision.py`** — `make_decision(state)` — APPROVED / REQUIRE_APPROVAL; audit "decision_made".
+- **`app/workflows/langgraph/nodes/compliance_nodes.py`** — Compliance variants + `make_compliance_decision` (regulatory flags, approval_required).
+- **`app/workflows/langgraph/risk_workflow.py`** — `RiskWorkflow.run(state)` — retrieval → policy → scoring → guardrails → decision; idempotent via state store; model/prompt version from registries.
+- **`app/workflows/langgraph/compliance_workflow.py`** — `ComplianceWorkflow.run(state)` — same pipeline with compliance gating; low regulatory flags → auto-approve; else escalate.
+- **`app/workflows/langgraph/workflow_state_store.py`** — `WorkflowStateStore`, `ComplianceStateStore` protocols; `RedisWorkflowStateStore` (key `workflow:{event_id}`) for idempotency.
+
+Tests: `tests/unit/workflows/` (state, nodes, risk/compliance workflow, idempotency, failures).
 
 ---
 
@@ -149,7 +168,21 @@ ai_risk_engine/
 │   └── workflows/
 │       ├── __init__.py
 │       ├── interface.py    # WorkflowTrigger protocol
-│       └── dummy_workflow.py  # DummyWorkflowTrigger (placeholder)
+│       ├── dummy_workflow.py  # DummyWorkflowTrigger (placeholder)
+│       └── langgraph/      # Phase 6: AI workflows
+│           ├── __init__.py
+│           ├── state_models.py    # RiskState, ComplianceState
+│           ├── workflow_state_store.py  # WorkflowStateStore, RedisWorkflowStateStore
+│           ├── risk_workflow.py   # RiskWorkflow.run()
+│           ├── compliance_workflow.py  # ComplianceWorkflow.run()
+│           └── nodes/
+│               ├── __init__.py
+│               ├── retrieval.py
+│               ├── policy_validation.py
+│               ├── risk_scoring.py
+│               ├── guardrails.py
+│               ├── decision.py
+│               └── compliance_nodes.py
 │
 ├── docker/                 # (empty — Dockerfiles/scripts go here)
 ├── migrations/             # (empty — DB migrations go here)
@@ -163,6 +196,14 @@ ai_risk_engine/
 │   ├── unit/
 │   │   ├── application/    # EventService unit tests (Phase 4)
 │   │   │   └── test_event_service.py
+│   │   ├── workflows/      # Phase 6: state, nodes, risk/compliance workflow, failures
+│   │   │   ├── conftest.py
+│   │   │   ├── test_state_models.py
+│   │   │   ├── test_nodes.py
+│   │   │   ├── test_risk_workflow.py
+│   │   │   ├── test_compliance_workflow.py
+│   │   │   ├── test_workflow_failures.py
+│   │   │   └── test_workflow_state_store.py
 │   │   ├── governance/     # Phase 5: audit, model registry, prompt registry, approval workflow
 │   │   │   ├── test_audit_logger.py
 │   │   │   ├── test_model_registry.py
@@ -235,6 +276,11 @@ ai_risk_engine/
 | `app/infrastructure/messaging/rabbitmq_publisher.py` | RabbitMQ message publisher |
 | `app/workflows/interface.py` | `WorkflowTrigger` protocol: `async def start(event_id, tenant_id)` |
 | `app/workflows/dummy_workflow.py` | `DummyWorkflowTrigger` — placeholder implementation (logs only) |
+| `app/workflows/langgraph/state_models.py` | `RiskState`, `ComplianceState` (Pydantic); immutable transitions; serializable |
+| `app/workflows/langgraph/workflow_state_store.py` | `WorkflowStateStore`, `ComplianceStateStore`; `RedisWorkflowStateStore` (idempotency) |
+| `app/workflows/langgraph/risk_workflow.py` | `RiskWorkflow.run(state)` — 5-node pipeline; idempotent; model/prompt version |
+| `app/workflows/langgraph/compliance_workflow.py` | `ComplianceWorkflow.run(state)` — compliance gating; regulatory flags |
+| `app/workflows/langgraph/nodes/*.py` | retrieval, policy_validation, risk_scoring, guardrails, decision, compliance_nodes |
 | `app/governance/audit_models.py` | Immutable `AuditRecord` (who, what, when UTC, why, correlation_id) |
 | `app/governance/audit_repository.py` | `AuditRepository` protocol (save) |
 | `app/governance/audit_logger.py` | `AuditLogger.log_action` — immutable audit via repository |
@@ -261,6 +307,7 @@ ai_risk_engine/
 | Path | Description |
 |------|-------------|
 | `tests/unit/application/test_event_service.py` | EventService unit tests: happy path, idempotent replay, messaging/repository/workflow failure (Phase 4) |
+| `tests/unit/workflows/*.py` | Phase 6: state, nodes, risk/compliance workflow, idempotency, failures, state store |
 | `tests/unit/governance/test_audit_logger.py` | Audit immutability, audit fields completeness |
 | `tests/unit/governance/test_model_registry.py` | Model approve/reject, cannot approve twice, cannot deploy unapproved |
 | `tests/unit/governance/test_prompt_registry.py` | Prompt version increments, audit every change |

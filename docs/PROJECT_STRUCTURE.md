@@ -16,7 +16,7 @@ Here’s a high-level overview of the main folders and what they’re for:
 | **`app/api/`** | HTTP layer: FastAPI routers (e.g. health, events), middleware, and shared dependencies. |
 | **`app/config/`** | Settings, logging, and environment-based configuration. |
 | **`app/domain/`** | Core business logic: **exceptions** (domain errors), **models** (e.g. EventStatus, BaseEvent, RiskEvent, ComplianceEvent with status lifecycle), **schemas** (request/response Pydantic models), **validators** (pure validation functions), policies, and domain services. No infrastructure or DB — easy to test and change. |
-| **`app/workflows/`** | Workflow trigger interface (`WorkflowTrigger` protocol) and placeholder implementation (`DummyWorkflowTrigger`). Future: LangGraph risk/compliance workflows. |
+| **`app/workflows/`** | Workflow trigger interface (`WorkflowTrigger` protocol), placeholder (`DummyWorkflowTrigger`), and **Phase 6** LangGraph AI workflows: `langgraph/` (state models, nodes, risk/compliance workflows, idempotency store). Deterministic pipelines with audit and model/prompt version tracking. |
 | **`app/infrastructure/`** | External systems: database (session, repository, ORM models), Redis cache (`redis_client.py`, `event_repository_redis.py` for event store), RabbitMQ messaging, and placeholders for LLM, vector store, and tools. Keeps “plumbing” in one place. |
 | **`app/security/`** | **Phase 5:** Security: `RBACService` (Role enum, permission matrix), `TenantContext` (strict tenant isolation), `EncryptionService` (AES/Fernet). No FastAPI; all components dependency-injected. |
 | **`app/governance/`** | **Phase 5:** Governance: `AuditLogger` (immutable audit records via `AuditRepository`), `ModelRegistry` (version + approval; no deploy unapproved), `PromptRegistry` (versioned, immutable history), `ApprovalWorkflow` (human-in-the-loop, RBAC). No FastAPI. |
@@ -139,7 +139,7 @@ You can then create a branch (e.g. `docs/project-structure` or `main`) and push 
 - **New API route** → `app/api/routers/` (e.g. a new file or router module such as `events.py`).
 - **New application service** → `app/application/` (e.g. `event_service.py` — transaction boundary: idempotency, persist, publish, workflow, audit; use `EventRepository` protocol and application exceptions).
 - **New business rule or model** → `app/domain/models/` or `app/domain/services/`; schemas in `app/domain/schemas/`, validators in `app/domain/validators/`, domain-specific errors in `app/domain/exceptions.py`.
-- **New workflow or pipeline** → `app/workflows/` (implement `WorkflowTrigger` protocol; use `interface.py` for the protocol).
+- **New workflow or pipeline** → `app/workflows/` (implement `WorkflowTrigger` protocol; use `interface.py` for the protocol). For AI pipelines, add nodes and/or workflows under `app/workflows/langgraph/` (state models, nodes, risk_workflow, compliance_workflow).
 - **New integration (DB, API client, queue, cache)** → `app/infrastructure/` (e.g. `database/models.py`, `database/repository.py`, `database/session.py`, `messaging/rabbitmq_publisher.py`, `cache/redis_client.py`).
 - **New config or env variable** → `app/config/` (e.g. in `settings.py` or a dedicated module).
 - **New test** → `tests/unit/`, `tests/integration/`, etc., mirroring the `app/` structure if you like.
