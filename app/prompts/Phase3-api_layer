@@ -1,0 +1,369 @@
+🎯 Objective
+
+Implement Phase 3 — API Layer for ai_risk_engine.
+
+We are exposing controlled surface area entry points.
+
+This is a regulated AI platform.
+The API layer must be:
+
+Async
+
+Tenant-aware
+
+Idempotent
+
+Correlation-ID traceable
+
+Audit-trigger enabled
+
+Clean DI-based architecture
+
+Testable with unit tests
+
+Follow existing project structure strictly.
+
+🧱 1️⃣ Create app/api/middleware.py
+
+Implement:
+
+A. Correlation ID Middleware
+
+Generate UUID if X-Correlation-ID header not provided
+
+Attach to:
+
+request.state.correlation_id
+
+Response header
+
+Inject into logging context
+
+B. Tenant Context Middleware
+
+Extract X-Tenant-ID header
+
+If missing → return 400
+
+Attach to:
+
+request.state.tenant_id
+
+Store in request-scoped context (core/context.py)
+
+C. Audit Trigger Hook
+
+After response:
+
+Log structured audit event:
+
+correlation_id
+
+tenant_id
+
+path
+
+method
+
+status_code
+
+Use structured JSON logging via config/logging.py.
+
+Middleware must be async.
+
+🧱 2️⃣ Update main.py
+
+Register middleware
+
+Mount routers in this order:
+
+/health
+/tenant
+/events
+/risk
+/compliance
+
+All routers must use APIRouter with prefix.
+
+🧱 3️⃣ Implement Routers (Async + DI + Idempotent)
+✅ 3.1 health.py
+
+Already exists — enhance if needed.
+
+Endpoint:
+
+GET /health
+
+Returns:
+
+{
+  "status": "ok",
+  "tenant_id": "...",
+  "correlation_id": "..."
+}
+
+Must read from request.state.
+
+✅ 3.2 tenant.py (NEW)
+
+Path: app/api/routers/tenant.py
+
+Endpoints:
+
+GET /tenant/context
+
+Returns:
+
+{
+  "tenant_id": "...",
+  "correlation_id": "..."
+}
+
+Used for debugging tenant propagation.
+
+✅ 3.3 events.py (Enhance)
+
+Path: app/api/routers/events.py
+
+Implement:
+
+POST /events
+GET /events/{event_id}
+
+Requirements:
+
+Async
+
+Use dependency injection:
+
+DB session
+
+Redis client
+
+EventService
+
+Extract tenant from request.state
+
+Idempotency via Redis:
+
+Header: X-Idempotency-Key
+
+If exists in Redis → return stored response
+
+Otherwise process and store response for 5 minutes
+
+Validate via:
+
+domain.schemas
+
+domain.validators
+
+Return EventResponse.
+
+✅ 3.4 risk.py (NEW)
+
+Path: app/api/routers/risk.py
+
+Endpoint:
+
+POST /risk
+
+Accept RiskEventCreateRequest.
+
+Flow:
+
+Validate
+
+Call EventService
+
+Return EventResponse
+
+Idempotent
+
+✅ 3.5 compliance.py (NEW)
+
+Path: app/api/routers/compliance.py
+
+Endpoint:
+
+POST /compliance
+
+Accept ComplianceEventCreateRequest.
+
+Flow same as risk.
+
+🧱 4️⃣ Dependency Injection Layer
+
+Create reusable dependencies in:
+
+app/api/dependencies.py
+
+Implement:
+
+get_db_session
+
+get_redis_client
+
+get_event_service
+
+get_tenant_id(request: Request)
+
+Use FastAPI Depends.
+
+🧪 5️⃣ Unit Tests (Mandatory)
+
+Add under:
+
+tests/unit/api/
+✅ 5.1 test_health.py
+
+Test returns 200
+
+Tenant header required
+
+Correlation ID auto-generated
+
+✅ 5.2 test_tenant.py
+
+Valid header → returns tenant
+
+Missing header → 400
+
+✅ 5.3 test_events.py
+
+Mock:
+
+Redis
+
+EventService
+
+DB session
+
+Test:
+
+Idempotency works
+
+First call stores
+
+Second call returns cached
+
+Validation error returns 422
+
+Missing idempotency header returns 400
+
+Use:
+
+pytest
+
+pytest-asyncio
+
+httpx AsyncClient
+
+✅ 5.4 test_risk.py
+✅ 5.5 test_compliance.py
+
+Test:
+
+Valid payload
+
+Validation failure
+
+Idempotency behavior
+
+🧪 6️⃣ Middleware Tests
+
+Create:
+
+tests/unit/api/test_middleware.py
+
+Test:
+
+Correlation ID generated
+
+Correlation ID preserved if passed
+
+Tenant required
+
+Response headers contain correlation ID
+
+🔐 Design Rules
+
+No business logic in routers
+
+Routers only orchestrate
+
+All async
+
+No direct DB access in router
+
+No direct Redis access outside DI
+
+No print statements
+
+Structured logging only
+
+Clean exception mapping:
+
+DomainValidationError → 422
+
+DomainError → 400
+
+Unexpected → 500
+
+🏗 Architecture Constraints
+
+This is a regulated AI platform.
+
+Therefore:
+
+Every request must have:
+
+tenant_id
+
+correlation_id
+
+idempotency_key (POST)
+
+All POST must be idempotent.
+
+No global state.
+
+📦 Expected Deliverables
+
+Cursor should generate:
+
+middleware.py
+
+tenant.py
+
+risk.py
+
+compliance.py
+
+enhanced events.py
+
+updated main.py
+
+dependencies.py
+
+unit tests for all
+
+proper async patterns
+
+🧠 After Implementation
+
+Ensure:
+
+pytest tests/unit
+
+passes.
+
+Health test via curl:
+
+curl -H "X-Tenant-ID: t1" http://localhost:8000/health
+⚠️ Important
+
+Follow existing project structure.
+Do not refactor unrelated modules.
+Do not touch infrastructure layer.
+Only implement Phase 3 API layer + tests.

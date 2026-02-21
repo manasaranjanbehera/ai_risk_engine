@@ -1,14 +1,19 @@
 # app/main.py
 
 import logging
-import uuid
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
+from fastapi.responses import JSONResponse
 
-from app.api.routers.health import router as health_router
+from app.api.middleware import (
+    AuditTriggerMiddleware,
+    CorrelationIdMiddleware,
+    TenantContextMiddleware,
+)
+from app.api.routers import compliance, events, health, risk, tenant
 from app.config.logging import configure_logging
 from app.config.settings import get_settings
-from app.core.context import correlation_id_ctx, tenant_id_ctx
+from app.domain.exceptions import DomainError, DomainValidationError
 
 settings = get_settings()
 configure_logging(settings.log_level)
@@ -19,25 +24,33 @@ app = FastAPI(
     debug=settings.debug,
 )
 
-
-logger = logging.getLogger(__name__)
-
-@app.middleware("http")
-async def context_middleware(request: Request, call_next):
-    correlation_id = request.headers.get("X-Correlation-ID", str(uuid.uuid4()))
-    tenant_id = request.headers.get("X-Tenant-ID", "public")
-
-    correlation_id_ctx.set(correlation_id)
-    tenant_id_ctx.set(tenant_id)
-
-    logger.info(f"Incoming request: {request.method} {request.url.path}")
-
-    response = await call_next(request)
-
-    logger.info(f"Completed request with status {response.status_code}")
-
-    response.headers["X-Correlation-ID"] = correlation_id
-    return response
+# Middleware order: last added runs first (outermost). Request flow: CorrelationId -> TenantContext -> AuditTrigger.
+app.add_middleware(AuditTriggerMiddleware)
+app.add_middleware(TenantContextMiddleware)
+app.add_middleware(CorrelationIdMiddleware)
 
 
-app.include_router(health_router)
+@app.exception_handler(DomainValidationError)
+async def domain_validation_error_handler(request, exc: DomainValidationError):
+    return JSONResponse(status_code=422, content={"detail": exc.message})
+
+
+@app.exception_handler(DomainError)
+async def domain_error_handler(request, exc: DomainError):
+    return JSONResponse(status_code=400, content={"detail": exc.message})
+
+
+@app.exception_handler(Exception)
+async def unexpected_error_handler(request, exc: Exception):
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal server error"},
+    )
+
+
+# Routers: /health, /tenant, /events, /risk, /compliance
+app.include_router(health.router)
+app.include_router(tenant.router, prefix="/tenant")
+app.include_router(events.router, prefix="/events")
+app.include_router(risk.router, prefix="/risk")
+app.include_router(compliance.router, prefix="/compliance")

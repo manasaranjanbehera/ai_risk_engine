@@ -1,0 +1,71 @@
+"""Fixtures for API unit tests: in-memory Redis, mock DB, AsyncClient."""
+
+from typing import AsyncGenerator
+from unittest.mock import AsyncMock, MagicMock
+
+import pytest
+from httpx import ASGITransport, AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.main import app
+
+
+class FakeRedis:
+    """In-memory Redis for unit tests."""
+
+    def __init__(self):
+        self._store: dict[str, str] = {}
+
+    async def get_cache(self, key: str):
+        return self._store.get(key)
+
+    async def set_cache(self, key: str, value: str, ttl: int = 300):
+        self._store[key] = value
+
+    async def set_idempotency_key(self, key: str, ttl: int = 3600):
+        if key not in self._store:
+            self._store[key] = "1"
+            return True
+        return False
+
+    async def exists(self, key: str):
+        return 1 if key in self._store else 0
+
+
+async def override_get_db_session() -> AsyncGenerator[AsyncSession, None]:
+    """Yield a mock async session."""
+    session = AsyncMock(spec=AsyncSession)
+    yield session
+
+
+def override_get_redis_client():
+    return FakeRedis()
+
+
+@pytest.fixture
+def fake_redis():
+    return FakeRedis()
+
+
+@pytest.fixture
+def app_with_overrides(fake_redis):
+    """App with DB and Redis overridden for testing."""
+    from app.api import dependencies
+
+    app.dependency_overrides[dependencies.get_db_session] = override_get_db_session
+    app.dependency_overrides[dependencies.get_redis_client] = lambda: fake_redis
+    yield app
+    app.dependency_overrides.clear()
+
+
+@pytest.fixture
+async def async_client(app_with_overrides):
+    """Async HTTP client for testing; uses overridden app."""
+    transport = ASGITransport(app=app_with_overrides)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        yield client
+
+
+@pytest.fixture
+def tenant_headers():
+    return {"X-Tenant-ID": "test-tenant-1"}
