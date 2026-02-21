@@ -1,6 +1,7 @@
 # app/api/routers/health.py
 
 from fastapi import APIRouter
+
 from app.config.settings import get_settings
 
 router = APIRouter()

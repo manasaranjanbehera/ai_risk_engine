@@ -2,7 +2,7 @@
 
 This guide walks you through setting up a local environment and testing the AI Risk Engine application, from creating a virtual environment to verifying the health router.
 
-**Last updated:** February 19, 2025
+**Last updated:** February 21, 2025
 
 ---
 
@@ -74,6 +74,7 @@ Required variables (see `app/config/settings.py`):
 | `JWT_SECRET` | Secret for JWT; must be at least 32 characters | `your-super-secret-key-at-least-32-chars-long` |
 | `DATABASE_URL` | PostgreSQL connection URL | `postgresql+asyncpg://compliance_user:compliance_pass@localhost:5432/compliance_db` |
 | `REDIS_URL` | Redis connection URL | `redis://localhost:6379/0` |
+| `RABBITMQ_URL` | RabbitMQ connection URL | `amqp://admin:admin123@localhost:5672/` (see note below) |
 
 Optional (defaults in parentheses):
 
@@ -81,12 +82,15 @@ Optional (defaults in parentheses):
 - `DEBUG` — `true` \| `false` (default: `false`)
 - `LOG_LEVEL` — `DEBUG` \| `INFO` \| `WARNING` \| `ERROR` (default: `INFO`)
 
+**Note:** `docker-compose.yml` configures RabbitMQ with user `admin` and password `admin123`. Use `RABBITMQ_URL=amqp://admin:admin123@localhost:5672/` when using that stack. The `.env.example` uses `guest:guest`; change to match the compose credentials if you use Docker.
+
 Create a `.env` file in the project root, for example:
 
 ```env
 JWT_SECRET=your-super-secret-key-at-least-32-chars-long
 DATABASE_URL=postgresql+asyncpg://compliance_user:compliance_pass@localhost:5432/compliance_db
 REDIS_URL=redis://localhost:6379/0
+RABBITMQ_URL=amqp://admin:admin123@localhost:5672/
 ENVIRONMENT=dev
 LOG_LEVEL=INFO
 ```
@@ -103,7 +107,7 @@ If you want a full local stack (Postgres, RabbitMQ, Redis) as defined in `docker
 docker-compose up -d
 ```
 
-Then use the same credentials in `.env` as in the compose file (e.g. `compliance_user` / `compliance_pass` / `compliance_db` for Postgres, and `redis://localhost:6379/0` for Redis). If you only need to hit the health router, you can skip this step and use the `.env` above; the app will start and `/health` will respond.
+Then use the same credentials in `.env` as in the compose file: Postgres (`compliance_user` / `compliance_pass` / `compliance_db`), Redis (`redis://localhost:6379/0`), and RabbitMQ (`amqp://admin:admin123@localhost:5672/`). If you only need to hit the health router, you can skip this step and use the `.env` above; the app will start and `/health` will respond.
 
 ---
 
@@ -168,7 +172,22 @@ You can call `/health` (and other routes) from the Swagger UI.
 
 ---
 
-## 9. Run tests (when added)
+## 9. Verify infrastructure (optional)
+
+From the project root with the venv activated, you can run the connectivity scripts in `scripts/` to verify Postgres, Redis, RabbitMQ, and the repository:
+
+```bash
+python scripts/test_db.py
+python scripts/test_redis.py
+python scripts/test_rabbit.py
+python scripts/test_repository.py
+```
+
+Ensure Docker services are up and `.env` is set before running these.
+
+---
+
+## 10. Run tests (when added)
 
 The project has test directories under `tests/` (`unit/`, `integration/`, `load/`, `workflow/`). When tests are added, you can run them with pytest from the project root:
 
@@ -190,7 +209,7 @@ pytest tests/unit/
 | Create venv | `python3 -m venv venv` |
 | Activate venv (Unix) | `source venv/bin/activate` |
 | Install deps | `pip install -r requirements.txt` |
-| Configure | Create `.env` with `JWT_SECRET`, `DATABASE_URL`, `REDIS_URL` |
+| Configure | Create `.env` with `JWT_SECRET`, `DATABASE_URL`, `REDIS_URL`, `RABBITMQ_URL` |
 | Optional services | `docker-compose up -d` |
 | Run app | `uvicorn app.main:app --reload` |
 | Health check | `curl http://127.0.0.1:8000/health` |

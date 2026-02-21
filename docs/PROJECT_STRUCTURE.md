@@ -17,20 +17,21 @@ Here’s a high-level overview of the main folders and what they’re for:
 | **`app/config/`** | Settings, logging, and environment-based configuration. |
 | **`app/domain/`** | Core business logic: models, schemas, policies, validators, and domain services. Kept separate from APIs and infrastructure so it stays easy to test and change. |
 | **`app/workflows/`** | Orchestration and workflows (e.g. LangGraph risk and compliance workflows and their nodes). |
-| **`app/infrastructure/`** | External systems: database, LLM clients, cache, messaging, vector store, and tools. Keeps “plumbing” in one place. |
+| **`app/infrastructure/`** | External systems: database (session, repository, ORM models), Redis cache (`redis_client.py`), RabbitMQ messaging, and placeholders for LLM, vector store, and tools. Keeps “plumbing” in one place. |
 | **`app/security/`** | Security concerns: encryption, RBAC, tenant context. |
 | **`app/governance/`** | Governance: prompt/model registry, audit logging, approval workflows. |
 | **`app/observability/`** | Metrics, tracing, evaluation, and integration with observability tools (e.g. Langfuse). |
 | **`tests/`** | All tests. Subfolders: `unit/`, `integration/`, `load/`, `workflow/` so you can run the right kind of tests when needed. |
 | **`migrations/`** | Database migrations (e.g. Alembic). Empty until you add your first migration. |
 | **`docker/`** | Docker-related files (e.g. Dockerfiles, scripts). Empty until you add them. |
-| **`scripts/`** | One-off or utility scripts (seeds, admin tasks). Empty until you add them. |
+| **`scripts/`** | Utility and connectivity test scripts: `test_db.py`, `test_redis.py`, `test_rabbit.py`, `test_repository.py` for verifying Postgres, Redis, RabbitMQ, and repository. |
 | **`docs/`** | Documentation (like this file). |
 
 At the root you’ll also see:
 
 - **`requirements.txt`** – Python dependencies (FastAPI, uvicorn, pydantic-settings, etc.).
 - **`docker-compose.yml`** – For running local services (Postgres, RabbitMQ, Redis).
+- **`schema.sql`** – PostgreSQL schema dump (reference).
 - **`README.md`** – Short project overview and how to run it.
 - **`.gitignore`** – Files and folders that Git should ignore.
 
@@ -139,7 +140,7 @@ You can then create a branch (e.g. `docs/project-structure` or `main`) and push 
 - **New application service** → `app/application/` (e.g. `event_service.py` — orchestrates domain + infrastructure).
 - **New business rule or model** → `app/domain/models/` or `app/domain/services/`; schemas in `app/domain/schemas/`, validators in `app/domain/validators/`.
 - **New workflow or pipeline** → `app/workflows/`.
-- **New integration (DB, API client, queue)** → `app/infrastructure/` (e.g. `database/models.py`, `database/repository.py`, `database/session.py`, `messaging/rabbitmq_publisher.py`).
+- **New integration (DB, API client, queue, cache)** → `app/infrastructure/` (e.g. `database/models.py`, `database/repository.py`, `database/session.py`, `messaging/rabbitmq_publisher.py`, `cache/redis_client.py`).
 - **New config or env variable** → `app/config/` (e.g. in `settings.py` or a dedicated module).
 - **New test** → `tests/unit/`, `tests/integration/`, etc., mirroring the `app/` structure if you like.
 
