@@ -1,7 +1,7 @@
 """Risk API router: POST /risk (idempotent). Uses application layer create_event."""
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Annotated, Optional
 
 from fastapi import APIRouter, Depends, Header, Request, Response
@@ -20,7 +20,7 @@ router = APIRouter()
 
 def _request_to_risk_event(tenant_id: str, req: RiskEventCreateRequest) -> RiskEvent:
     event_id = str(uuid.uuid4())
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     metadata = (req.metadata or {}).copy()
     if req.version:
         metadata["version"] = req.version

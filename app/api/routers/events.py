@@ -1,7 +1,7 @@
 """Events API router: POST /events (idempotent), GET /events/{event_id}."""
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Annotated, Optional, Union
 
 from fastapi import APIRouter, Depends, Header, Request, Response
@@ -28,7 +28,7 @@ router = APIRouter()
 def _request_to_risk_event(tenant_id: str, req: RiskEventCreateRequest) -> RiskEvent:
     """Build validated domain RiskEvent from API request. Validation already done in API layer."""
     event_id = str(uuid.uuid4())
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     metadata = (req.metadata or {}).copy()
     if req.version:
         metadata["version"] = req.version
@@ -46,7 +46,7 @@ def _request_to_risk_event(tenant_id: str, req: RiskEventCreateRequest) -> RiskE
 def _request_to_compliance_event(tenant_id: str, req: ComplianceEventCreateRequest) -> ComplianceEvent:
     """Build validated domain ComplianceEvent from API request."""
     event_id = str(uuid.uuid4())
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     metadata = (req.metadata or {}).copy()
     if req.version:
         metadata["version"] = req.version
