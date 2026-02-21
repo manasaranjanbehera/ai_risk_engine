@@ -15,7 +15,7 @@ Here’s a high-level overview of the main folders and what they’re for:
 | **`app/core/`** | Request-scoped context (e.g. correlation ID, tenant ID) used by middleware and logging. |
 | **`app/api/`** | HTTP layer: FastAPI routers (e.g. health, events), middleware, and shared dependencies. |
 | **`app/config/`** | Settings, logging, and environment-based configuration. |
-| **`app/domain/`** | Core business logic: models, schemas, policies, validators, and domain services. Kept separate from APIs and infrastructure so it stays easy to test and change. |
+| **`app/domain/`** | Core business logic: **exceptions** (domain errors), **models** (e.g. EventStatus, BaseEvent, RiskEvent, ComplianceEvent with status lifecycle), **schemas** (request/response Pydantic models), **validators** (pure validation functions), policies, and domain services. No infrastructure or DB — easy to test and change. |
 | **`app/workflows/`** | Orchestration and workflows (e.g. LangGraph risk and compliance workflows and their nodes). |
 | **`app/infrastructure/`** | External systems: database (session, repository, ORM models), Redis cache (`redis_client.py`), RabbitMQ messaging, and placeholders for LLM, vector store, and tools. Keeps “plumbing” in one place. |
 | **`app/security/`** | Security concerns: encryption, RBAC, tenant context. |
@@ -138,7 +138,7 @@ You can then create a branch (e.g. `docs/project-structure` or `main`) and push 
 
 - **New API route** → `app/api/routers/` (e.g. a new file or router module such as `events.py`).
 - **New application service** → `app/application/` (e.g. `event_service.py` — orchestrates domain + infrastructure).
-- **New business rule or model** → `app/domain/models/` or `app/domain/services/`; schemas in `app/domain/schemas/`, validators in `app/domain/validators/`.
+- **New business rule or model** → `app/domain/models/` or `app/domain/services/`; schemas in `app/domain/schemas/`, validators in `app/domain/validators/`, domain-specific errors in `app/domain/exceptions.py`.
 - **New workflow or pipeline** → `app/workflows/`.
 - **New integration (DB, API client, queue, cache)** → `app/infrastructure/` (e.g. `database/models.py`, `database/repository.py`, `database/session.py`, `messaging/rabbitmq_publisher.py`, `cache/redis_client.py`).
 - **New config or env variable** → `app/config/` (e.g. in `settings.py` or a dedicated module).

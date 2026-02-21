@@ -2,7 +2,20 @@
 
 This document describes the current folder and file layout of the **ai_risk_engine** project (excluding `.git`, `__pycache__`, and `venv/`). Use it as a quick reference for where code and assets live.
 
-**Last updated:** February 21, 2025
+**Last updated:** February 21, 2025 (Phase 2 — domain layer: exceptions, event lifecycle, validators)
+
+---
+
+## Phase 2 domain layer (summary)
+
+The domain package (`app/domain/`) is self-contained and free of infrastructure:
+
+- **`exceptions.py`** — Base `DomainError` and specific errors for validation, status transitions, tenant, risk threshold, and metadata.
+- **`models/event.py`** — `EventStatus` enum (created → validated → processing → approved/rejected/failed), allowed transitions, `BaseEvent` with `transition_to()`, and entity types `RiskEvent`, `ComplianceEvent`.
+- **`schemas/event.py`** — Pydantic request schemas (`RiskEventCreateRequest`, `ComplianceEventCreateRequest`) and `EventResponse`; validators for tenant_id, risk_score 0–100, JSON-serializable metadata, version.
+- **`validators/event_validator.py`** — Pure functions that enforce domain rules and raise domain exceptions; used for both API request validation and entity validation.
+
+Import the public API from `app.domain` (see `app/domain/__init__.py` for `__all__`).
 
 ---
 
@@ -43,16 +56,17 @@ ai_risk_engine/
 │   │   └── settings.py     # Pydantic settings (env, .env)
 │   │
 │   ├── domain/
-│   │   ├── __init__.py
+│   │   ├── __init__.py     # Re-exports models, schemas, validators, exceptions
+│   │   ├── exceptions.py   # Domain errors (DomainError, DomainValidationError, etc.)
 │   │   ├── models/
 │   │   │   ├── __init__.py
-│   │   │   └── event.py
+│   │   │   └── event.py    # EventStatus, BaseEvent, RiskEvent, ComplianceEvent; status transitions
 │   │   ├── schemas/
 │   │   │   ├── __init__.py
-│   │   │   └── event.py
+│   │   │   └── event.py    # RiskEventCreateRequest, ComplianceEventCreateRequest, EventResponse
 │   │   ├── validators/
 │   │   │   ├── __init__.py
-│   │   │   └── event_validator.py
+│   │   │   └── event_validator.py  # Tenant, risk score, metadata, status transition validators
 │   │   ├── policies/       # (placeholder)
 │   │   └── services/       # (placeholder)
 │   │
@@ -127,9 +141,10 @@ ai_risk_engine/
 | `app/infrastructure/cache/redis_client.py` | Redis async client (idempotency keys, cache) |
 | `app/config/settings.py` | Main settings (Pydantic BaseSettings, `.env`) |
 | `app/config/logging.py` | Logging config (JSON formatter, correlation/tenant in logs) |
-| `app/domain/models/event.py` | Event domain model |
-| `app/domain/schemas/event.py` | Event request/response schemas |
-| `app/domain/validators/event_validator.py` | Event validation logic |
+| `app/domain/exceptions.py` | Domain errors: `DomainError`, `DomainValidationError`, `InvalidStatusTransitionError`, `InvalidTenantError`, `RiskThresholdViolationError`, `InvalidMetadataError` |
+| `app/domain/models/event.py` | Event domain model: `EventStatus` lifecycle, `BaseEvent` (with `transition_to()`), `RiskEvent`, `ComplianceEvent` |
+| `app/domain/schemas/event.py` | Event request/response schemas: `RiskEventCreateRequest`, `ComplianceEventCreateRequest`, `EventResponse` (Pydantic; metadata JSON-serializable, risk 0–100) |
+| `app/domain/validators/event_validator.py` | Pure validators: tenant_id, risk_score, metadata, status transition; request and entity validation |
 | `app/infrastructure/database/models.py` | Database ORM models |
 | `app/infrastructure/database/repository.py` | Database repository (CRUD, queries; e.g. AsyncRepository) |
 | `app/infrastructure/database/session.py` | Database session factory and dependency |
