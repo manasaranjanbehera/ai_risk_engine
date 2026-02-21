@@ -2,7 +2,27 @@
 
 This document describes the current folder and file layout of the **ai_risk_engine** project (excluding `.git`, `__pycache__`, and `venv/`). Use it as a quick reference for where code and assets live.
 
-**Last updated:** February 21, 2025 (Phase 4 — application layer: event service, repository protocol, workflows)
+**Last updated:** February 21, 2025 (Phase 5 — governance & security)
+
+---
+
+## Phase 5 governance & security (summary)
+
+Governance and security layers are domain-style: no FastAPI, no HTTP, all dependencies injected.
+
+- **`app/governance/audit_models.py`** — Immutable `AuditRecord` (who, what, when UTC, why, correlation_id).
+- **`app/governance/audit_repository.py`** — `AuditRepository` protocol (save).
+- **`app/governance/audit_logger.py`** — `AuditLogger.log_action(...)`; writes structured immutable records via repository.
+- **`app/governance/model_registry.py`** — `ModelRegistry`: register_model, approve_model, reject_model, get_model, get_approved_model; status PENDING/APPROVED/REJECTED; approval emits audit; cannot deploy unapproved.
+- **`app/governance/prompt_registry.py`** — `PromptRegistry`: register_prompt, update_prompt, get_prompt; versioned, change_reason, author; immutable previous versions; audit every change.
+- **`app/governance/approval_workflow.py`** — `ApprovalWorkflow`: request_approval, approve, reject; RBAC (only APPROVER/ADMIN); audit trail; status transitions enforced.
+- **`app/governance/exceptions.py`** — `GovernanceError`, `ModelNotApprovedError`, `InvalidModelStateError`, `InvalidWorkflowStateError`.
+- **`app/security/rbac.py`** — `Role` (ADMIN, ANALYST, APPROVER, VIEWER), `RBACService.check_permission(role, action)`; raises `AuthorizationError` if denied.
+- **`app/security/tenant_context.py`** — `TenantContext.validate_access(resource_tenant, request_tenant)`; raises `TenantIsolationError` on mismatch.
+- **`app/security/encryption.py`** — `EncryptionService(key)`; AES (Fernet); encrypt/decrypt; fails if key missing; no global state.
+- **`app/security/exceptions.py`** — `SecurityError`, `AuthorizationError`, `TenantIsolationError`, `EncryptionError`.
+
+Tests: `tests/unit/governance/`, `tests/unit/security/`.
 
 ---
 
@@ -110,9 +130,22 @@ ai_risk_engine/
 │   │   ├── tools/          # (placeholder)
 │   │   └── vectorstore/    # (placeholder)
 │   │
-│   ├── governance/         # (placeholder — approval, audit, registries)
+│   ├── governance/         # Phase 5: audit, model/prompt registry, approval workflow
+│   │   ├── __init__.py
+│   │   ├── audit_models.py      # AuditRecord (immutable)
+│   │   ├── audit_repository.py   # AuditRepository protocol
+│   │   ├── audit_logger.py      # AuditLogger
+│   │   ├── model_registry.py    # ModelRegistry, ModelStatus, ModelRecord
+│   │   ├── prompt_registry.py   # PromptRegistry, PromptRecord
+│   │   ├── approval_workflow.py  # ApprovalWorkflow, ApprovalStatus
+│   │   └── exceptions.py        # GovernanceError, ModelNotApprovedError, etc.
 │   ├── observability/      # (placeholder — metrics, tracing)
-│   ├── security/           # (placeholder — encryption, RBAC, tenant)
+│   ├── security/           # Phase 5: RBAC, tenant isolation, encryption
+│   │   ├── __init__.py
+│   │   ├── rbac.py              # Role, RBACService
+│   │   ├── tenant_context.py    # TenantContext
+│   │   ├── encryption.py        # EncryptionService (AES/Fernet)
+│   │   └── exceptions.py        # AuthorizationError, TenantIsolationError, etc.
 │   └── workflows/
 │       ├── __init__.py
 │       ├── interface.py    # WorkflowTrigger protocol
@@ -130,6 +163,15 @@ ai_risk_engine/
 │   ├── unit/
 │   │   ├── application/    # EventService unit tests (Phase 4)
 │   │   │   └── test_event_service.py
+│   │   ├── governance/     # Phase 5: audit, model registry, prompt registry, approval workflow
+│   │   │   ├── test_audit_logger.py
+│   │   │   ├── test_model_registry.py
+│   │   │   ├── test_prompt_registry.py
+│   │   │   └── test_approval_workflow.py
+│   │   ├── security/       # Phase 5: RBAC, tenant context, encryption
+│   │   │   ├── test_rbac.py
+│   │   │   ├── test_tenant_context.py
+│   │   │   └── test_encryption.py
 │   │   └── api/
 │   ├── integration/
 │   ├── load/
@@ -193,6 +235,17 @@ ai_risk_engine/
 | `app/infrastructure/messaging/rabbitmq_publisher.py` | RabbitMQ message publisher |
 | `app/workflows/interface.py` | `WorkflowTrigger` protocol: `async def start(event_id, tenant_id)` |
 | `app/workflows/dummy_workflow.py` | `DummyWorkflowTrigger` — placeholder implementation (logs only) |
+| `app/governance/audit_models.py` | Immutable `AuditRecord` (who, what, when UTC, why, correlation_id) |
+| `app/governance/audit_repository.py` | `AuditRepository` protocol (save) |
+| `app/governance/audit_logger.py` | `AuditLogger.log_action` — immutable audit via repository |
+| `app/governance/model_registry.py` | `ModelRegistry`, `ModelStatus`, `ModelRecord`; register/approve/reject; no deploy unapproved |
+| `app/governance/prompt_registry.py` | `PromptRegistry`, `PromptRecord`; versioned prompts, audit every change |
+| `app/governance/approval_workflow.py` | `ApprovalWorkflow`, `ApprovalStatus`; RBAC, audit trail |
+| `app/governance/exceptions.py` | `GovernanceError`, `ModelNotApprovedError`, `InvalidModelStateError`, `InvalidWorkflowStateError` |
+| `app/security/rbac.py` | `Role` enum, `RBACService.check_permission`; permission matrix |
+| `app/security/tenant_context.py` | `TenantContext.validate_access`; strict tenant isolation |
+| `app/security/encryption.py` | `EncryptionService` — AES (Fernet), env key, no global state |
+| `app/security/exceptions.py` | `SecurityError`, `AuthorizationError`, `TenantIsolationError`, `EncryptionError` |
 
 ### Scripts (`scripts/`)
 
@@ -208,6 +261,13 @@ ai_risk_engine/
 | Path | Description |
 |------|-------------|
 | `tests/unit/application/test_event_service.py` | EventService unit tests: happy path, idempotent replay, messaging/repository/workflow failure (Phase 4) |
+| `tests/unit/governance/test_audit_logger.py` | Audit immutability, audit fields completeness |
+| `tests/unit/governance/test_model_registry.py` | Model approve/reject, cannot approve twice, cannot deploy unapproved |
+| `tests/unit/governance/test_prompt_registry.py` | Prompt version increments, audit every change |
+| `tests/unit/governance/test_approval_workflow.py` | RBAC enforcement, status transitions |
+| `tests/unit/security/test_rbac.py` | RBAC permission matrix (all roles × actions) |
+| `tests/unit/security/test_tenant_context.py` | Tenant isolation, cross-tenant raises |
+| `tests/unit/security/test_encryption.py` | Encryption round-trip, wrong key fails, key missing fails |
 | `tests/unit/api/conftest.py` | API test fixtures: FakeRedis, mock_publisher, app_with_overrides |
 | `tests/unit/api/test_events.py` | Events API: idempotency, validation, GET by id |
 | `tests/unit/api/test_risk.py` | POST /risk: valid payload, validation failure, idempotency |

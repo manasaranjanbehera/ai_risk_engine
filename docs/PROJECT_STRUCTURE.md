@@ -18,8 +18,8 @@ Here’s a high-level overview of the main folders and what they’re for:
 | **`app/domain/`** | Core business logic: **exceptions** (domain errors), **models** (e.g. EventStatus, BaseEvent, RiskEvent, ComplianceEvent with status lifecycle), **schemas** (request/response Pydantic models), **validators** (pure validation functions), policies, and domain services. No infrastructure or DB — easy to test and change. |
 | **`app/workflows/`** | Workflow trigger interface (`WorkflowTrigger` protocol) and placeholder implementation (`DummyWorkflowTrigger`). Future: LangGraph risk/compliance workflows. |
 | **`app/infrastructure/`** | External systems: database (session, repository, ORM models), Redis cache (`redis_client.py`, `event_repository_redis.py` for event store), RabbitMQ messaging, and placeholders for LLM, vector store, and tools. Keeps “plumbing” in one place. |
-| **`app/security/`** | Security concerns: encryption, RBAC, tenant context. |
-| **`app/governance/`** | Governance: prompt/model registry, audit logging, approval workflows. |
+| **`app/security/`** | **Phase 5:** Security: `RBACService` (Role enum, permission matrix), `TenantContext` (strict tenant isolation), `EncryptionService` (AES/Fernet). No FastAPI; all components dependency-injected. |
+| **`app/governance/`** | **Phase 5:** Governance: `AuditLogger` (immutable audit records via `AuditRepository`), `ModelRegistry` (version + approval; no deploy unapproved), `PromptRegistry` (versioned, immutable history), `ApprovalWorkflow` (human-in-the-loop, RBAC). No FastAPI. |
 | **`app/observability/`** | Metrics, tracing, evaluation, and integration with observability tools (e.g. Langfuse). |
 | **`tests/`** | All tests. Subfolders: `unit/`, `integration/`, `load/`, `workflow/` so you can run the right kind of tests when needed. |
 | **`migrations/`** | Database migrations (e.g. Alembic). Empty until you add your first migration. |
