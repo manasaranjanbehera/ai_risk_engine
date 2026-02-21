@@ -21,7 +21,8 @@ Here’s a high-level overview of the main folders and what they’re for:
 | **`app/security/`** | **Phase 5:** Security: `RBACService` (Role enum, permission matrix), `TenantContext` (strict tenant isolation), `EncryptionService` (AES/Fernet). No FastAPI; all components dependency-injected. |
 | **`app/governance/`** | **Phase 5:** Governance: `AuditLogger` (immutable audit records via `AuditRepository`), `ModelRegistry` (version + approval; no deploy unapproved), `PromptRegistry` (versioned, immutable history), `ApprovalWorkflow` (human-in-the-loop, RBAC). No FastAPI. |
 | **`app/observability/`** | **Phase 7:** Observability & production hardening: Prometheus-style **metrics** (request/workflow/node latency, tenant usage, failure counts, approval counts); OpenTelemetry-style **tracing** (in-memory, trace/span hierarchy); **cost tracking** (per tenant, per model, deterministic); **failure classification** (VALIDATION_ERROR, POLICY_VIOLATION, HIGH_RISK, WORKFLOW_ERROR, INFRA_ERROR, UNEXPECTED_ERROR); **evaluation** (deterministic quality scores, audit); simulated **Langfuse** client (LLM trace logging, no external calls). All dependency-injected; workflows optionally record latency, cost, and metrics. |
-| **`tests/`** | All tests. Subfolders: `unit/`, `integration/`, `load/`, `workflow/` so you can run the right kind of tests when needed. |
+| **`app/scalability/`** | **Phase 8:** Scalability & distributed deployment: **DistributedLock** (Redis SETNX, TTL, safe release); **TenantRateLimiter** (per-tenant sliding window, metrics); **CircuitBreaker** (CLOSED/OPEN/HALF_OPEN); **BulkheadExecutor** (max concurrent + queue overflow); **AutoScalingPolicy** (deterministic SCALE_UP/SCALE_DOWN/NO_ACTION); **WorkloadPartitioner** (consistent hashing); **HealthMonitor** (DB, Redis, RabbitMQ, backlog, circuit states). No FastAPI; thread- and async-safe; dependency-injected. |
+| **`tests/`** | All tests. Subfolders: `unit/`, `integration/`, `load/`, `chaos/` so you can run the right kind of tests when needed. |
 | **`migrations/`** | Database migrations (e.g. Alembic). Empty until you add your first migration. |
 | **`docker/`** | Docker-related files (e.g. Dockerfiles, scripts). Empty until you add them. |
 | **`scripts/`** | Utility and connectivity test scripts: `test_db.py`, `test_redis.py`, `test_rabbit.py`, `test_repository.py` for verifying Postgres, Redis, RabbitMQ, and repository. |
@@ -142,7 +143,7 @@ You can then create a branch (e.g. `docs/project-structure` or `main`) and push 
 - **New workflow or pipeline** → `app/workflows/` (implement `WorkflowTrigger` protocol; use `interface.py` for the protocol). For AI pipelines, add nodes and/or workflows under `app/workflows/langgraph/` (state models, nodes, risk_workflow, compliance_workflow).
 - **New integration (DB, API client, queue, cache)** → `app/infrastructure/` (e.g. `database/models.py`, `database/repository.py`, `database/session.py`, `messaging/rabbitmq_publisher.py`, `cache/redis_client.py`).
 - **New config or env variable** → `app/config/` (e.g. in `settings.py` or a dedicated module).
-- **New test** → `tests/unit/`, `tests/integration/`, etc., mirroring the `app/` structure if you like.
+- **New test** → `tests/unit/`, `tests/integration/`, `tests/load/`, `tests/chaos/`, mirroring the `app/` structure if you like.
 
 ---
 

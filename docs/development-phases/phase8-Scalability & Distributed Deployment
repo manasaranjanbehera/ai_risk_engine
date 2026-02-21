@@ -1,0 +1,400 @@
+🎯 Objective
+
+Implement Phase 8 — Scalability, Distributed Deployment, Load & Chaos Testing Strategy for ai_risk_engine.
+
+You must:
+
+Implement distributed-ready components.
+
+Introduce horizontal scalability controls.
+
+Add concurrency-safe infrastructure.
+
+Add load testing framework.
+
+Add chaos testing framework.
+
+Write comprehensive unit + integration tests.
+
+Run all tests.
+
+Fix failures.
+
+Ensure 100% pass.
+
+Update documentation.
+
+Create development summary.
+
+Maintain clean architecture boundaries.
+
+Do NOT break previous phases.
+
+🏗 PHASE 8 — SCALABILITY ARCHITECTURE
+
+Create:
+
+app/scalability/
+
+Structure:
+
+scalability/
+├── distributed_lock.py
+├── rate_limiter.py
+├── circuit_breaker.py
+├── bulkhead.py
+├── autoscaling_policy.py
+├── workload_partitioning.py
+└── health_monitor.py
+1️⃣ distributed_lock.py
+
+Implement Redis-based distributed locking:
+
+class DistributedLock:
+    async def acquire(key: str, ttl: int) -> bool
+    async def release(key: str) -> None
+
+Requirements:
+
+Prevent duplicate workflow execution across nodes
+
+Safe in concurrent async environment
+
+Use SETNX pattern
+
+TTL enforced
+
+Unit test concurrent access simulation
+
+2️⃣ rate_limiter.py
+
+Implement token-bucket rate limiter per tenant:
+
+class TenantRateLimiter:
+    async def allow_request(tenant_id: str) -> bool
+
+Features:
+
+Per-tenant limit
+
+Sliding window
+
+Metrics integration
+
+Unit tests for burst handling
+
+3️⃣ circuit_breaker.py
+
+Implement circuit breaker pattern:
+
+class CircuitBreaker:
+    async def call(func, *args, **kwargs)
+
+States:
+
+CLOSED
+
+OPEN
+
+HALF_OPEN
+
+Features:
+
+Failure threshold
+
+Recovery timeout
+
+Metrics tracking
+
+Unit test state transitions
+
+4️⃣ bulkhead.py
+
+Isolate workflow resource pools:
+
+class BulkheadExecutor:
+    async def submit(task)
+
+Features:
+
+Max concurrent tasks
+
+Prevent tenant starvation
+
+Queue overflow protection
+
+Unit test concurrency caps
+
+5️⃣ autoscaling_policy.py
+
+Simulate scaling decisions:
+
+class AutoScalingPolicy:
+    def evaluate(metrics_snapshot) -> ScalingDecision
+
+Decision based on:
+
+CPU usage (simulated)
+
+Request latency
+
+Failure rate
+
+Queue depth
+
+Return:
+
+SCALE_UP
+
+SCALE_DOWN
+
+NO_ACTION
+
+Fully deterministic.
+
+6️⃣ workload_partitioning.py
+
+Implement tenant-aware partitioning:
+
+class WorkloadPartitioner:
+    def get_partition(tenant_id: str) -> int
+
+Features:
+
+Consistent hashing
+
+Stable partition mapping
+
+Unit test deterministic mapping
+
+7️⃣ health_monitor.py
+
+Aggregate system health:
+
+class HealthMonitor:
+    async def system_health() -> dict
+
+Must include:
+
+DB health
+
+Redis health
+
+RabbitMQ health
+
+Workflow backlog
+
+Circuit breaker states
+
+Node latency metrics
+
+Integrate with observability layer.
+
+🔥 ENTERPRISE LOAD TESTING FRAMEWORK
+
+Create:
+
+tests/load/
+
+Add:
+
+load_test_workflow.py
+load_test_api.py
+
+Use:
+
+asyncio concurrency simulation
+
+Multiple tenants
+
+Simulated 1k+ requests
+
+Measure:
+
+Throughput
+
+Latency distribution
+
+Error rate
+
+Cost accumulation
+
+Approval escalation rate
+
+Load tests must assert:
+
+No data corruption
+
+No cross-tenant leakage
+
+No deadlocks
+
+No race conditions
+
+🌪 ENTERPRISE CHAOS TESTING STRATEGY
+
+Create:
+
+tests/chaos/
+
+Add:
+
+chaos_workflow_failures.py
+chaos_messaging_failures.py
+chaos_redis_failures.py
+chaos_partial_node_failure.py
+
+Simulate:
+
+Redis outage
+
+RabbitMQ failure
+
+Node crash mid-workflow
+
+Circuit breaker open state
+
+Partial latency spikes
+
+System must:
+
+Fail gracefully
+
+Classify failure
+
+Maintain audit integrity
+
+Not corrupt state
+
+Preserve idempotency
+
+🧪 TEST EXECUTION REQUIREMENT
+
+After implementing:
+
+Run:
+
+pytest tests/unit
+pytest tests/load
+pytest tests/chaos
+
+If failures:
+
+Fix properly
+
+Re-run
+
+Achieve full pass
+
+No suppressed tests
+
+📊 SCALABILITY METRICS REQUIRED
+
+System must now support:
+
+Concurrent workflow execution
+
+Distributed idempotency safety
+
+Per-tenant rate limiting
+
+Circuit breaker health
+
+Resource pool isolation
+
+Scaling decision simulation
+
+Partitioned workload routing
+
+Resilience under chaos
+
+📚 DOCUMENTATION UPDATE
+
+Update:
+
+docs/PROJECT_STRUCTURE.md
+docs/FOLDER_AND_FILE_STRUCTURE.md
+docs/TESTING_AND_LOCAL_SETUP.md
+
+Add:
+
+Scalability layer
+
+Deployment readiness
+
+Load testing instructions
+
+Chaos testing instructions
+
+📝 DEVELOPMENT SUMMARY
+
+Create:
+
+app/docs/development-phase/PHASE_8_SCALABILITY_AND_RESILIENCE.md
+
+Readable format including:
+
+1. Architectural Objectives
+2. Distributed Locking Strategy
+3. Rate Limiting Design
+4. Circuit Breaker Implementation
+5. Bulkhead Isolation Strategy
+6. Tenant Workload Partitioning
+7. Auto-scaling Decision Logic
+8. Load Testing Methodology
+9. Chaos Testing Scenarios
+10. Failure Recovery Guarantees
+11. Scalability Benchmarks
+12. Production Deployment Blueprint
+13. Kubernetes / Container Scaling Notes
+14. Future Horizontal Scaling Improvements
+
+Write in professional enterprise engineering documentation tone.
+
+🔐 ARCHITECTURAL RULES
+
+No FastAPI imports in scalability layer
+
+No global mutable state
+
+Thread-safe + async-safe
+
+Deterministic scaling logic
+
+Metrics-integrated
+
+Failure-safe
+
+Idempotent operations preserved
+
+Tenant isolation preserved
+
+Fully dependency-injected
+
+🎯 POST-PHASE 8 SYSTEM CAPABILITIES
+
+After Phase 8 your platform must support:
+
+Horizontal scaling readiness
+
+Distributed-safe workflows
+
+Concurrency protection
+
+Tenant-level isolation
+
+Graceful degradation
+
+Auto-scaling logic
+
+Load-tested architecture
+
+Chaos-tested resilience
+
+Production-grade observability
+
+Regulatory-grade traceability
+
+Your system now transitions from:
+
+Enterprise AI Platform → Distributed, Resilient, Production-Scale AI Risk Engine

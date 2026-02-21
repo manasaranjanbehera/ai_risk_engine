@@ -35,3 +35,29 @@ class RedisClient:
             await self.client.expire(key, window)
 
         return current <= limit
+
+    async def set_nx_ex(self, key: str, value: str, ttl: int) -> bool:
+        """Set key to value only if not exists, with TTL. Returns True if key was set."""
+        return bool(await self.client.set(key, value, nx=True, ex=ttl))
+
+    async def get(self, key: str) -> str | None:
+        """Get value for key. Returns None if key does not exist."""
+        return await self.client.get(key)
+
+    async def delete_key(self, key: str) -> None:
+        """Delete a key."""
+        await self.client.delete(key)
+
+    async def delete_if_value(self, key: str, value: str) -> bool:
+        """Delete key only if its value equals value (atomic). Returns True if deleted."""
+        script = "if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end"
+        result = await self.client.eval(script, 1, key, value)
+        return bool(result)
+
+    async def incr(self, key: str) -> int:
+        """Increment key, return new value."""
+        return await self.client.incr(key)
+
+    async def expire(self, key: str, seconds: int) -> None:
+        """Set TTL on key."""
+        await self.client.expire(key, seconds)

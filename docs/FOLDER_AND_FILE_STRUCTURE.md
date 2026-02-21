@@ -2,7 +2,25 @@
 
 This document describes the current folder and file layout of the **ai_risk_engine** project (excluding `.git`, `__pycache__`, and `venv/`). Use it as a quick reference for where code and assets live.
 
-**Last updated:** February 21, 2025 (Phase 7 — Observability & production hardening)
+**Last updated:** February 21, 2025 (Phase 8 — Scalability & distributed deployment)
+
+---
+
+## Phase 8 Scalability & distributed deployment (summary)
+
+Scalability layer is dependency-injected; no FastAPI imports; thread- and async-safe.
+
+- **`app/scalability/distributed_lock.py`** — `DistributedLock`: Redis SETNX + TTL, unique token per acquire, atomic release via compare-and-delete; prevents duplicate workflow execution across nodes.
+- **`app/scalability/rate_limiter.py`** — `TenantRateLimiter`: per-tenant sliding window; `InMemoryRateLimitBackend` for tests; optional metrics callback.
+- **`app/scalability/circuit_breaker.py`** — `CircuitBreaker`: CLOSED → OPEN (failure threshold) → HALF_OPEN (recovery timeout); `call(func)` wraps async calls; metrics tracking.
+- **`app/scalability/bulkhead.py`** — `BulkheadExecutor`: bounded queue + semaphore; max concurrent and max queued; queue overflow raises.
+- **`app/scalability/autoscaling_policy.py`** — `AutoScalingPolicy.evaluate(MetricsSnapshot)` → `ScalingDecision` (SCALE_UP, SCALE_DOWN, NO_ACTION); CPU, latency, failure rate, queue depth; deterministic.
+- **`app/scalability/workload_partitioning.py`** — `WorkloadPartitioner.get_partition(tenant_id)`: consistent hashing, stable partition index.
+- **`app/scalability/health_monitor.py`** — `HealthMonitor.system_health()`: aggregates DB, Redis, RabbitMQ, workflow backlog, circuit breaker states, node latency; all backends injected.
+
+**Load tests:** `tests/load/test_load_workflow.py`, `tests/load/test_load_api.py` — concurrent workflow and API calls; multi-tenant; no cross-tenant leakage; bulkhead/rate limiter/partitioning.
+
+**Chaos tests:** `tests/chaos/test_chaos_workflow_failures.py`, `test_chaos_messaging_failures.py`, `test_chaos_redis_failures.py`, `test_chaos_partial_node_failure.py` — workflow/messaging/Redis/circuit-breaker failure scenarios; graceful degradation; audit and idempotency preserved.
 
 ---
 
@@ -185,6 +203,15 @@ ai_risk_engine/
 │   │   ├── evaluation.py       # EvaluationService (quality scoring, audit)
 │   │   ├── cost_tracker.py     # CostTracker (per tenant/model/request)
 │   │   └── failure_classifier.py  # FailureClassifier (exception → FailureCategory)
+│   ├── scalability/       # Phase 8: distributed lock, rate limiter, circuit breaker, bulkhead, autoscaling, partitioning, health
+│   │   ├── __init__.py
+│   │   ├── distributed_lock.py
+│   │   ├── rate_limiter.py
+│   │   ├── circuit_breaker.py
+│   │   ├── bulkhead.py
+│   │   ├── autoscaling_policy.py
+│   │   ├── workload_partitioning.py
+│   │   └── health_monitor.py
 │   ├── security/           # Phase 5: RBAC, tenant isolation, encryption
 │   │   ├── __init__.py
 │   │   ├── rbac.py              # Role, RBACService
@@ -249,7 +276,8 @@ ai_risk_engine/
 │   │   │   └── test_encryption.py
 │   │   └── api/
 │   ├── integration/
-│   ├── load/
+│   ├── load/              # Phase 8: test_load_workflow.py, test_load_api.py
+│   ├── chaos/            # Phase 8: test_chaos_workflow_failures.py, test_chaos_messaging_failures.py, test_chaos_redis_failures.py, test_chaos_partial_node_failure.py
 │   └── workflow/
 │
 └── docs/
@@ -332,6 +360,13 @@ ai_risk_engine/
 | `app/observability/evaluation.py` | `EvaluationService.evaluate_decision`: deterministic quality scores; audit |
 | `app/observability/cost_tracker.py` | `CostTracker`: per tenant/model/request; add_cost_from_tokens; deterministic rate |
 | `app/observability/failure_classifier.py` | `FailureClassifier.classify(exception)` → FailureCategory (VALIDATION_ERROR, etc.) |
+| `app/scalability/distributed_lock.py` | `DistributedLock`: Redis SETNX + TTL; acquire/release; safe in concurrent async |
+| `app/scalability/rate_limiter.py` | `TenantRateLimiter`: per-tenant sliding window; `InMemoryRateLimitBackend` |
+| `app/scalability/circuit_breaker.py` | `CircuitBreaker`: CLOSED/OPEN/HALF_OPEN; call(func); failure threshold, recovery timeout |
+| `app/scalability/bulkhead.py` | `BulkheadExecutor`: max concurrent + queue overflow; submit(task) |
+| `app/scalability/autoscaling_policy.py` | `AutoScalingPolicy.evaluate(metrics)` → ScalingDecision (SCALE_UP/SCALE_DOWN/NO_ACTION) |
+| `app/scalability/workload_partitioning.py` | `WorkloadPartitioner.get_partition(tenant_id)`: consistent hashing |
+| `app/scalability/health_monitor.py` | `HealthMonitor.system_health()`: DB, Redis, RabbitMQ, backlog, circuit states |
 
 ### Scripts (`scripts/`)
 
@@ -360,6 +395,13 @@ ai_risk_engine/
 | `tests/unit/api/test_events.py` | Events API: idempotency, validation, GET by id |
 | `tests/unit/api/test_risk.py` | POST /risk: valid payload, validation failure, idempotency |
 | `tests/unit/api/test_compliance.py` | POST /compliance: valid payload, validation, idempotency |
+| `tests/unit/scalability/*.py` | Phase 8: distributed lock, rate limiter, circuit breaker, bulkhead, autoscaling, partitioning, health |
+| `tests/load/test_load_workflow.py` | Phase 8: concurrent workflow, multi-tenant, no cross-tenant leakage; bulkhead, rate limiter, partitioning |
+| `tests/load/test_load_api.py` | Phase 8: health throughput, multi-tenant no leakage |
+| `tests/chaos/test_chaos_workflow_failures.py` | Phase 8: workflow failure classified; failure classifier mapping |
+| `tests/chaos/test_chaos_messaging_failures.py` | Phase 8: messaging failure raises MessagingFailureError; idempotency not cached |
+| `tests/chaos/test_chaos_redis_failures.py` | Phase 8: Redis outage; lock/rate limiter fail gracefully |
+| `tests/chaos/test_chaos_partial_node_failure.py` | Phase 8: circuit breaker OPEN/HALF_OPEN behavior |
 
 ### Documentation (`docs/`)
 
@@ -368,8 +410,8 @@ ai_risk_engine/
 | `docs/PROJECT_STRUCTURE.md` | Project structure guide and conventions |
 | `docs/FOLDER_AND_FILE_STRUCTURE.md` | This file — full folder and file structure |
 | `docs/TESTING_AND_LOCAL_SETUP.md` | Local setup and testing (venv, run app, health check) |
-| `docs/development-phases/` | Cursor prompts and phase summaries (Phase 3–7); not used at runtime |
-| `app/docs/development-phase/` | Phase summaries (e.g. PHASE_6_AI_WORKFLOWS.md, PHASE_7_OBSERVABILITY_AND_PRODUCTION_HARDENING.md) |
+| `docs/development-phases/` | Cursor prompts and phase summaries (Phase 3–8); not used at runtime |
+| `app/docs/development-phase/` | Phase summaries (e.g. PHASE_6_AI_WORKFLOWS.md, PHASE_7_OBSERVABILITY_AND_PRODUCTION_HARDENING.md, PHASE_8_SCALABILITY_AND_RESILIENCE.md) |
 | `docs/llm_context/master_architecture_prompt.md` | LLM context / architecture prompt |
 
 ---

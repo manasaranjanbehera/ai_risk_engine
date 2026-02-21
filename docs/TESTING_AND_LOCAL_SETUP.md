@@ -2,7 +2,7 @@
 
 This guide walks you through setting up a local environment and testing the AI Risk Engine application, from creating a virtual environment to verifying the health router.
 
-**Last updated:** February 21, 2025 (Phase 2 — domain layer in place; tests structure unchanged)
+**Last updated:** February 21, 2025 (Phase 8 — scalability, load and chaos tests)
 
 ---
 
@@ -187,16 +187,32 @@ Ensure Docker services are up and `.env` is set before running these.
 
 ---
 
-## 10. Run tests (when added)
+## 10. Run tests
 
-The project has test directories under `tests/` (`unit/`, `integration/`, `load/`, `workflow/`). The domain layer (`app/domain/`) and application layer (`app/application/`: EventService, repository protocol) are designed for unit testing with mocked dependencies. Application-layer tests live in `tests/unit/application/` (e.g. `test_event_service.py`). Run tests from the project root with the venv activated. Use **`python -m pytest`** so the correct environment is used (avoids "command not found: pytest" if the `pytest` executable is not on your PATH):
+The project has test directories under `tests/` (`unit/`, `integration/`, `load/`, `chaos/`). Run tests from the project root with the venv activated. Use **`python -m pytest`** so the correct environment is used:
 
 ```bash
 # All unit tests
 python -m pytest tests/unit/
-# Or only observability + workflows (Phase 6 & 7):
+
+# Load tests (Phase 8): concurrent workflow and API; multi-tenant; no cross-tenant leakage
+python -m pytest tests/load/ -v
+
+# Chaos tests (Phase 8): Redis/messaging/workflow/circuit-breaker failure scenarios; graceful degradation
+python -m pytest tests/chaos/ -v
+
+# Full suite (unit + load + chaos)
+python -m pytest tests/unit/ tests/load/ tests/chaos/ -v
+```
+
+Examples for specific areas:
+
+```bash
+# Observability + workflows (Phase 6 & 7)
 python -m pytest tests/unit/observability tests/unit/workflows -v
-# Or only application-layer unit tests (Phase 4):
+# Scalability (Phase 8)
+python -m pytest tests/unit/scalability/ -v
+# Application layer (Phase 4)
 python -m pytest tests/unit/application/ -v
 ```
 
