@@ -2,7 +2,7 @@
 
 This guide walks you through setting up a local environment and testing the AI Risk Engine application, from creating a virtual environment to verifying the health router.
 
-**Last updated:** February 21, 2025
+**Last updated:** February 21, 2025 (Phase 2 — domain layer in place; tests structure unchanged)
 
 ---
 
@@ -189,7 +189,7 @@ Ensure Docker services are up and `.env` is set before running these.
 
 ## 10. Run tests (when added)
 
-The project has test directories under `tests/` (`unit/`, `integration/`, `load/`, `workflow/`). When tests are added, you can run them with pytest from the project root:
+The project has test directories under `tests/` (`unit/`, `integration/`, `load/`, `workflow/`). The domain layer (`app/domain/`: models, schemas, validators, exceptions) is designed for easy unit testing without infrastructure. When tests are added, you can run them with pytest from the project root:
 
 ```bash
 # Install dev dependencies if you have a dev requirements file

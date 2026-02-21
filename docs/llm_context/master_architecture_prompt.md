@@ -22,6 +22,16 @@ Idempotent
 Observability-friendly
 
 ✅ CURRENT PROJECT STATE
+
+**Domain layer (Phase 2)**  
+The domain package (`app/domain/`) is implemented and infrastructure-free:
+
+- **Exceptions** (`app/domain/exceptions.py`): `DomainError`, `DomainValidationError`, `InvalidStatusTransitionError`, `InvalidTenantError`, `RiskThresholdViolationError`, `InvalidMetadataError`.
+- **Models** (`app/domain/models/event.py`): `EventStatus` enum (created → validated → processing → approved/rejected/failed) with enforced transitions; `BaseEvent` (with `transition_to()`), `RiskEvent`, `ComplianceEvent`.
+- **Schemas** (`app/domain/schemas/event.py`): `RiskEventCreateRequest`, `ComplianceEventCreateRequest`, `EventResponse`; Pydantic validators for tenant_id, risk_score 0–100, JSON-serializable metadata, version.
+- **Validators** (`app/domain/validators/event_validator.py`): Pure functions for tenant_id, risk_score, metadata, status transitions; request and entity validation; all raise domain exceptions.
+- **Public API**: Import from `app.domain` (see `__init__.py` for `__all__`). Application layer (`event_service.py`) will orchestrate domain + infrastructure; event API can use domain schemas and validators.
+
 Infrastructure (Dockerized & Running)
 
 Core infra is running locally using Docker Compose:

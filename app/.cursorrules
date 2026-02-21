@@ -1,0 +1,229 @@
+# ======================================================
+# AI Risk Engine – Enterprise Cursor Rules (Mature Repo)
+# Repository: ai_risk_engine
+# Architecture: Regulated, Multi-Tenant, Event-Driven AI
+# ======================================================
+
+# ------------------------------------------------------
+# PROJECT STRUCTURE AWARENESS (MANDATORY)
+# ------------------------------------------------------
+
+- Always analyze the full repository tree before modifying code.
+- Cross-check with docs/PROJECT_STRUCTURE.md before adding files.
+- Never duplicate existing architectural concepts.
+- If a feature exists but is incomplete, extend it — do not recreate it.
+- Respect current folder placement strictly.
+
+# ------------------------------------------------------
+# CURRENT ARCHITECTURAL STATE
+# ------------------------------------------------------
+
+This repository already contains scaffolding for:
+
+- Foundations
+- Infrastructure
+- Domain
+- API
+- Application
+- Governance
+- Security
+- AI Workflows
+- Observability
+
+Cursor must assume:
+Structure exists.
+Features may be partially implemented.
+Do not rebuild layers.
+Strengthen them incrementally.
+
+# ------------------------------------------------------
+# LAYER BOUNDARY ENFORCEMENT
+# ------------------------------------------------------
+
+STRICT RULES:
+
+Domain layer:
+- No FastAPI imports
+- No DB session imports
+- No infrastructure imports
+- No messaging imports
+- Only pure business logic, entities, validators
+
+API layer:
+- No business logic
+- No direct DB access
+- Must call application layer
+- Must extract tenant from header
+- Must use dependency injection
+
+Application layer:
+- Transaction boundary
+- Handles idempotency
+- Calls repository
+- Calls messaging
+- Calls workflows
+- Emits audit logs
+
+Infrastructure layer:
+- DB, cache, messaging only
+- No domain validation logic
+- No FastAPI logic
+
+Governance:
+- Must log who, what, when, why
+- Model and prompt version tracking mandatory
+
+Workflows:
+- Only orchestration logic
+- Atomic nodes
+- Deterministic execution
+- No hidden global state
+
+Observability:
+- Metrics per endpoint
+- Metrics per workflow node
+- Tenant-based metrics labeling
+
+# ------------------------------------------------------
+# ASYNC-FIRST ENFORCEMENT
+# ------------------------------------------------------
+
+- All DB operations must use async SQLAlchemy.
+- All messaging must be async.
+- All FastAPI endpoints must be async.
+- No blocking I/O allowed.
+- No sync wrappers around async logic.
+
+# ------------------------------------------------------
+# MULTI-TENANCY ENFORCEMENT
+# ------------------------------------------------------
+
+Tenant ID must exist in:
+
+- DB models
+- Audit logs
+- Cache keys
+- Messaging headers
+- Workflow state
+- Metrics labels
+- Traces
+
+Cursor must reject code that omits tenant propagation.
+
+# ------------------------------------------------------
+# IDEMPOTENCY ENFORCEMENT
+# ------------------------------------------------------
+
+Event endpoints must:
+
+- Require idempotency key
+- Check Redis or DB uniqueness
+- Enforce idempotent event creation
+- Prevent duplicate workflow execution
+
+Application layer is the idempotency boundary.
+
+# ------------------------------------------------------
+# GOVERNANCE-FIRST AI RULES
+# ------------------------------------------------------
+
+Before any LLM call:
+
+- Model version must be resolved from model_registry
+- Prompt version must be resolved from prompt_registry
+- Audit record must be created
+- Decision must be logged
+
+Cursor must refuse:
+
+- Direct LLM invocation bypassing registry
+- Hardcoded prompt strings
+- Hardcoded model names
+- Untracked AI decisions
+
+# ------------------------------------------------------
+# WORKFLOW DISCIPLINE (LangGraph)
+# ------------------------------------------------------
+
+Workflows must:
+
+- Define explicit state models
+- Use typed state transitions
+- Log node-level execution
+- Emit audit events
+- Remain deterministic
+- Avoid implicit side effects
+
+Nodes must be atomic reasoning units.
+
+# ------------------------------------------------------
+# OBSERVABILITY RULES
+# ------------------------------------------------------
+
+Every new feature must include:
+
+- Metrics update
+- Trace span creation
+- Error categorization
+- Tenant usage tracking
+
+Latency must be measurable per:
+
+- API endpoint
+- Workflow node
+- External dependency
+
+# ------------------------------------------------------
+# SECURITY RULES
+# ------------------------------------------------------
+
+- JWT validation abstracted
+- RBAC enforced before sensitive operations
+- No secrets in code
+- Encryption centralized
+- Tenant isolation strictly validated
+
+# ------------------------------------------------------
+# TESTING ENFORCEMENT
+# ------------------------------------------------------
+
+When adding or modifying logic:
+
+- Add corresponding unit test
+- Add integration test if API touched
+- Add workflow test if node changed
+- Add load test if performance sensitive
+
+Do not merge logic without test suggestion.
+
+# ------------------------------------------------------
+# STRATEGIC GUARDRAILS
+# ------------------------------------------------------
+
+Cursor must refuse to:
+
+- Add LLM logic without governance integration
+- Access DB directly from API
+- Access infrastructure from domain
+- Expose risk/compliance endpoints without idempotency check
+- Bypass audit logging
+- Add sync code in async stack
+- Introduce hidden global state
+
+# ------------------------------------------------------
+# ENGINEERING STANDARD
+# ------------------------------------------------------
+
+Code must be:
+
+- Production-grade
+- Typed (full type hints)
+- Structured logging (JSON)
+- Clean dependency injection
+- SOLID compliant
+- Horizontally scalable ready
+- Multi-tenant safe
+- Event-driven
+
+This is a regulated AI platform.
+Not a demo application.
